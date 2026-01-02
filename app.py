@@ -3,7 +3,7 @@ from scipy.stats import norm
 import streamlit as st
 import matplotlib.pyplot as plt
 
-# Configuration de la page sans emojis
+# Configuration de la page
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
 
 # --- 1. MOTEUR MATHÉMATIQUE ---
@@ -93,45 +93,36 @@ def get_strategy_description(strategy, position):
     }
     return desc.get(strategy, {}).get(position, "N/A")
 
-# Ajout des deux paramètres width_lower et width_upper
 def get_strategy_legs(strategy, K, width_lower, width_upper, position="Long"):
     pos_mult = 1 if position == "Long" else -1
     
+    # Stratégies simples (Call/Put/Straddle) : les sliders n'ont pas d'impact
     if strategy == "Call":
         return [("Call", 1.0, 1 * pos_mult)]
     elif strategy == "Put":
         return [("Put", 1.0, 1 * pos_mult)]
-        
-    elif strategy == "Covered Call":
-        # Vente du Call à la borne supérieure
-        return [("Stock", 0, 1), ("Call", 1.0 + width_upper, -1)] 
-        
-    elif strategy == "Protective Put":
-        # Achat du Put à la borne inférieure
-        return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1)] 
-        
     elif strategy == "Straddle":
         return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, 1 * pos_mult)]
         
-    elif strategy == "Strangle":
-        # Put OTM (bas), Call OTM (haut)
-        return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, 1 * pos_mult)]
-        
+    # Stratégies utilisant la borne HAUTE (Call OTM)
+    elif strategy == "Covered Call":
+        return [("Stock", 0, 1), ("Call", 1.0 + width_upper, -1)] 
     elif strategy == "Bull Call Spread":
-        # Achat ATM, Vente OTM (haut)
         return [("Call", 1.0, 1 * pos_mult), ("Call", 1.0 + width_upper, -1 * pos_mult)]
+    elif strategy == "Call Ratio Backspread":
+        return [("Call", 1.0, -1 * pos_mult), ("Call", 1.0 + width_upper, 2 * pos_mult)]
         
+    # Stratégies utilisant la borne BASSE (Put OTM)
+    elif strategy == "Protective Put":
+        return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1)] 
     elif strategy == "Bear Put Spread":
-        # Achat ATM, Vente OTM (bas)
         return [("Put", 1.0, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
         
+    # Stratégies utilisant les DEUX bornes
+    elif strategy == "Strangle":
+        return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, 1 * pos_mult)]
     elif strategy == "Butterfly":
-        # Ailes asymétriques possible maintenant
         return [("Call", 1.0 - width_lower, 1*pos_mult), ("Call", 1.0, -2*pos_mult), ("Call", 1.0 + width_upper, 1*pos_mult)]
-        
-    elif strategy == "Call Ratio Backspread":
-        # Short ATM, Long 2x OTM (haut)
-        return [("Call", 1.0, -1 * pos_mult), ("Call", 1.0 + width_upper, 2 * pos_mult)]
     
     return []
 
@@ -158,15 +149,29 @@ with col_params:
             
         st.divider()
         st.header("2. Paramètres Avancés")
-        st.caption("Ajustement asymétrique des strikes OTM")
         
-        col_width1, col_width2 = st.columns(2)
-        with col_width1:
-            # Controle la borne basse (ex: Puts dans un Strangle)
-            width_lower = st.slider("Lower Spread (-%)", min_value=0.01, max_value=0.50, value=0.10, step=0.01, format="%.2f")
-        with col_width2:
-             # Controle la borne haute (ex: Calls dans un Backspread)
-            width_upper = st.slider("Upper Spread (+%)", min_value=0.01, max_value=0.50, value=0.15, step=0.01, format="%.2f")
+        # --- LOGIQUE D'AFFICHAGE DYNAMIQUE DES SLIDERS ---
+        # On ne montre que les sliders utiles pour la stratégie sélectionnée
+        
+        # Upper Spread utile pour : Call OTM (Covered Call, Bull Spread, Backspread, Strangle, Butterfly)
+        show_upper = selected_strat in ["Covered Call", "Bull Call Spread", "Call Ratio Backspread", "Strangle", "Butterfly"]
+        
+        # Lower Spread utile pour : Put OTM (Protective Put, Bear Spread, Strangle, Butterfly)
+        show_lower = selected_strat in ["Protective Put", "Bear Put Spread", "Strangle", "Butterfly"]
+
+        width_lower = 0.10 # Valeur par défaut si caché
+        width_upper = 0.10 # Valeur par défaut si caché
+
+        if not show_upper and not show_lower:
+            st.caption("Aucun paramètre d'écart pour cette stratégie (Structure ATM).")
+        else:
+            col_width1, col_width2 = st.columns(2)
+            with col_width1:
+                if show_lower:
+                    width_lower = st.slider("Lower Spread (-%)", min_value=0.01, max_value=0.50, value=0.10, step=0.01, format="%.2f")
+            with col_width2:
+                if show_upper:
+                    width_upper = st.slider("Upper Spread (+%)", min_value=0.01, max_value=0.50, value=0.15, step=0.01, format="%.2f")
 
         st.divider()
         st.header("3. Market Data")
@@ -176,7 +181,7 @@ with col_params:
         sigma = st.slider("Implied Volatility (sigma)", 0.05, 2.00, 0.35)
         r = st.number_input("Risk Free Rate (r)", value=0.04)
 
-# Calculs avec les deux paramètres de largeur
+# Calculs
 legs_config = get_strategy_legs(selected_strat, K, width_lower, width_upper, position)
 total_price, total_delta, total_gamma, total_theta, total_vega = 0, 0, 0, 0, 0
 real_legs_details = []
@@ -210,10 +215,11 @@ with col_viz:
 
     st.subheader("Simulateur P&L")
     
-    # Range élargi pour bien voir les profits sur Protective Put / Covered Call
     S_range = np.linspace(S * 0.5, S * 1.8, 300)
     
-    # Initialisation du PnL avec le cout initial (payé = négatif, reçu = positif)
+    # Le PnL est : Valeur du portefeuille à maturité - Coût initial
+    # Coût initial (total_price) : Si positif on a payé, si négatif on a reçu.
+    # Donc PnL = Valeur_Finale - total_price
     pnl_maturity = np.zeros_like(S_range) - total_price 
     
     for leg_type, leg_k, qty in real_legs_details:
@@ -222,8 +228,6 @@ with col_viz:
         elif leg_type == "Put":
             pnl_maturity += np.maximum(leg_k - S_range, 0) * qty
         elif leg_type == "Stock":
-            # CORRECTION ICI : On ajoute la VALEUR du stock à maturité (S_range).
-            # Le coût d'achat initial est déjà inclus dans 'total_price' soustrait ci-dessus.
             pnl_maturity += S_range * qty
 
     fig, ax = plt.subplots(figsize=(12, 5))
@@ -254,4 +258,4 @@ with col_viz:
     st.dataframe(legs_data, use_container_width=True)
 
 st.write("---")
-st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui/Pricer/blob/main/app.py)")
+st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui)")
