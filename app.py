@@ -38,11 +38,11 @@ def get_strategy_description(strategy, position):
     # Formatage standardisé pour l'affichage
     def format_desc(structure, these, contexte):
         return f"""
-        **🏗️ Structure Produit :** {structure}
+        **Structure Produit :** {structure}
         
-        **🎯 Thèse d'investissement :** {these}
+        **Thèse d'investissement :** {these}
         
-        **🌍 Contexte Marché :** {contexte}
+        **Contexte Marché :** {contexte}
         """
 
     desc = {
@@ -190,8 +190,8 @@ def get_strategy_legs(strategy, K, position="Long"):
 
 # --- 3. INTERFACE ---
 
-st.title("🛡️ Professional Derivatives Pricer")
-st.markdown("Structuring & Risk Analysis Module")
+st.title("Derivatives Pricer")
+
 
 col_params, col_viz = st.columns([1, 3])
 
