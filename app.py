@@ -254,4 +254,4 @@ with col_viz:
     st.dataframe(legs_data, use_container_width=True)
 
 st.write("---")
-st.markdown("Coded by [Pipousa](https://github.com/KarimMaoui/Pricer/blob/main/app.py)")
+st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui/Pricer/blob/main/app.py)")
