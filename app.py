@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Configuration de la page
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
 
-# --- 1. MOTEUR MATHÉMATIQUE (Inchangé) ---
+# --- 1. MOTEUR MATHÉMATIQUE ---
 
 def black_scholes(S, K, T, r, sigma, q, option_type="Call"):
     if option_type == "Stock":
@@ -33,7 +33,7 @@ def get_greeks(S, K, T, r, sigma, q, option_type="Call"):
     theta = (- (S * sigma * np.exp(-q * T) * norm.pdf(d1)) / (2 * np.sqrt(T))) / 365
     return delta, gamma, theta, vega
 
-# --- 2. LOGIQUE DES STRATÉGIES (VERSION PRO) ---
+# --- 2. LOGIQUE DES STRATÉGIES (VERSION INSTITUTIONNELLE) ---
 
 def get_strategy_description(strategy, position):
     def format_desc(structure, these, contexte):
@@ -52,113 +52,153 @@ def get_strategy_description(strategy, position):
         "Call": {
             "Long": format_desc(
                 "Achat Call (Strike K).",
-                "Exposition directionnelle haussière avec effet de levier (Gearing). La perte est strictement limitée à la prime payée, tandis que le profit est théoriquement illimité au-delà du point mort (Strike + Prime). Sensibilité positive à la volatilité (Vega Long).",
-                "Anticipation d'un mouvement haussier violent et rapide (Momentum). Conviction forte sur un catalyseur à court terme (M&A, Résultats)."
+                "Exposition directionnelle haussière avec effet de levier (Gearing). Perte limitée à la prime, profit illimité. Sensible à la hausse de volatilité.",
+                "Anticipation d'un mouvement haussier violent (Momentum). Conviction forte sur un catalyseur."
             ),
             "Short": format_desc(
                 "Vente Call (Naked).",
-                "Stratégie de rendement pur. Le gain est plafonné à la prime reçue. Le risque est illimité si le marché monte. Profil de risque asymétrique défavorable (Negative Skewness).",
-                "Marché baissier ou conviction que le niveau de résistance technique ne sera pas franchi. Volatilité implicite jugée excessivement chère."
+                "Stratégie de rendement (Short Vega). Gain plafonné à la prime. Risque illimité.",
+                "Marché baissier ou butée sur résistance technique majeure."
             )
         },
         "Put": {
             "Long": format_desc(
                 "Achat Put (Strike K).",
-                "Exposition directionnelle baissière. Utilisé soit pour la spéculation, soit comme couverture (Hedge) d'un portefeuille existant. Fixe un prix de vente plancher.",
-                "Anticipation d'une correction de marché ou couverture contre un 'Tail Risk' (Risque de queue de distribution)."
+                "Exposition directionnelle baissière. Utilisé pour la spéculation ou la couverture (Floor).",
+                "Anticipation d'une correction ou couverture 'Tail Risk'."
             ),
             "Short": format_desc(
                 "Vente Put (Naked).",
-                "Stratégie d'accumulation (Target Buying). L'investisseur s'engage à acheter le sous-jacent au Strike K. Il encaisse la prime pour patienter.",
-                "Marché neutre à légèrement haussier. Volonté d'entrer sur le titre à un prix décoté par rapport au Spot actuel."
+                "Accumulation (Target Buying). Engagement d'achat du sous-jacent au Strike K. Encaissement de prime.",
+                "Marché neutre/haussier. Volonté d'entrée à un prix décoté."
             )
         },
         "Covered Call": {
             "Long": format_desc(
                 "Long Sous-jacent + Short Call (OTM).",
-                "Stratégie de 'Yield Enhancement' (Amélioration du rendement). La prime reçue agit comme un dividende synthétique et offre un coussin (Buffer) contre une baisse modérée. En contrepartie, l'investisseur renonce à tout gain au-delà du Strike du Call.",
-                "Marché neutre ou haussier lent. Idéal quand la volatilité est élevée pour monétiser la détention du titre."
+                "Yield Enhancement. La prime reçue amortit les baisses légères. Renoncement à l'upside au-delà du strike.",
+                "Marché neutre ou haussier lent. Volatilité implicite élevée."
             ),
             "Short": "N/A"
         },
         "Protective Put": {
             "Long": format_desc(
                 "Long Sous-jacent + Long Put (OTM/ATM).",
-                "Stratégie d'assurance (Synthetic Call). L'investisseur conserve 100% du potentiel de hausse de l'action tout en fixant une perte maximale absolue (Strike du Put - Prime).",
-                "Incertitude à court terme (Earnings, Élections) sur une position stratégique long terme qu'on ne souhaite pas solder."
+                "Assurance Portefeuille. Conservation du potentiel haussier avec perte maximale garantie.",
+                "Incertitude à court terme sur une position stratégique."
             ),
             "Short": "N/A"
+        },
+        "Collar": {
+            "Long": format_desc(
+                "Long Sous-jacent + Long Put (Bas) + Short Call (Haut).",
+                "Protection à coût réduit (voire Zéro Coût). La vente du Call finance l'achat du Put. Le P&L est encadré (Floor et Cap).",
+                "Détention long terme prudente. Volonté de se couvrir contre un krach sans débourser de cash."
+            ),
+            "Short": "N/A"
+        },
+        "Risk Reversal": {
+            "Long": format_desc(
+                "Long Call (Haut) + Short Put (Bas).",
+                "Stratégie directionnelle synthétique financée. On joue le Skew de volatilité. Réplique une position longue sur l'action mais avec une marge initiale réduite.",
+                "Retournement de tendance haussier (Reversal) ou arbitrage de Skew (Calls pas chers, Puts chers)."
+            ),
+            "Short": format_desc(
+                "Short Call (Haut) + Long Put (Bas).",
+                "Pari directionnel baissier financé. On finance la protection (Put) par la vente de potentiel (Call).",
+                "Retournement de tendance baissier."
+            )
         },
         "Straddle": {
             "Long": format_desc(
                 "Achat Call (ATM) + Achat Put (ATM).",
-                "Stratégie de Volatilité Pure (Delta Neutre). Pari sur une expansion de la volatilité réalisée supérieure à la volatilité implicite payée. La direction du mouvement importe peu, seule l'amplitude compte.",
-                "Événements binaires majeurs (Earnings Surprise, Décision Banques Centrales, CPI) susceptibles de provoquer un gap de prix."
+                "Volatilité Pure (Delta Neutre). Pari sur une amplitude de mouvement supérieure à ce que le marché price.",
+                "Événements binaires (Earnings, CPI, Banques Centrales)."
             ),
             "Short": format_desc(
                 "Vente Call (ATM) + Vente Put (ATM).",
-                "Vente de Volatilité (Short Vega). Pari sur la compression de volatilité et l'érosion du temps (Theta Decay). Risque de perte illimité des deux côtés.",
-                "Marché en range strict. Retour au calme attendu après une sur-réaction du marché (Mean Reversion)."
+                "Vente de Volatilité. Pari sur le retour au calme (Mean Reversion) et l'érosion du temps.",
+                "Marché en range strict. Post-événement."
             )
         },
         "Strangle": {
             "Long": format_desc(
                 "Achat Call (OTM) + Achat Put (OTM).",
-                "Volatilité à moindre coût. Contrairement au Straddle, le point mort est plus éloigné. Nécessite un mouvement de marché très violent pour devenir profitable.",
-                "Pari sur un 'Cygne Noir' (Black Swan) ou une rupture de tendance majeure à faible coût initial."
+                "Volatilité Low-Cost. Nécessite un mouvement plus violent que le Straddle pour être profitable.",
+                "Scénario 'Black Swan' ou rupture technique majeure."
             ),
             "Short": format_desc(
                 "Vente Call (OTM) + Vente Put (OTM).",
-                "Vente de Volatilité avec marge de sécurité. Profitable tant que le cours reste dans le tunnel formé par les deux strikes. Probabilité de gain élevée, mais risque de queue de distribution (Tail Risk).",
-                "Marché latéral (Sideways). Volatilité implicite élevée permettant d'éloigner les bornes tout en gardant une prime attractive."
+                "Vente de Volatilité Large. Profitable tant que le cours reste dans le tunnel.",
+                "Marché latéral (Sideways) avec volatilité élevée."
             )
         },
         "Bull Call Spread": {
             "Long": format_desc(
-                "Achat Call (K1) + Vente Call (K2). (K1 < K2).",
-                "Optimisation directionnelle. La vente du Call K2 finance une partie de l'achat de K1. Réduit le coût de revient et le point mort, en échange d'un profit capé à K2.",
-                "Hausse modérée anticipée. L'investisseur ne croit pas à une explosion au-delà de K2 et souhaite réduire son exposition à une baisse de volatilité."
+                "Achat Call (K1) + Vente Call (K2).",
+                "Optimisation directionnelle haussière. Coût réduit, profit capé.",
+                "Hausse modérée anticipée."
             ),
             "Short": format_desc(
-                "Vente Call (K1) + Achat Call (K2). (Crédit Spread).",
-                "Stratégie de Crédit. L'investisseur parie que le marché ne dépassera pas K1. Le gain est limité au crédit reçu initialement.",
-                "Marché baissier, neutre, ou butée sur une résistance technique majeure."
+                "Vente Call (K1) + Achat Call (K2).",
+                "Crédit Spread (Baissier). Encaissement de prime si le marché ne monte pas.",
+                "Résistance technique."
             )
         },
         "Bear Put Spread": {
             "Long": format_desc(
-                "Achat Put (K1) + Vente Put (K2). (K1 > K2).",
-                "Protection ou spéculation baissière à coût réduit. La vente du Put K2 finance l'achat du Put K1. Le profit maximal est atteint si le cours touche K2.",
-                "Baisse modérée anticipée (Target précis). Pas de scénario de crash systémique (auquel cas un Put sec serait préférable)."
+                "Achat Put (K1) + Vente Put (K2).",
+                "Optimisation directionnelle baissière. Coût réduit, profit capé.",
+                "Baisse modérée anticipée."
             ),
             "Short": format_desc(
-                "Vente Put (K1) + Achat Put (K2). (Crédit Spread).",
-                "Stratégie de Crédit (Bull Put Spread). L'investisseur parie que le marché ne passera pas sous K1. Le risque est défini par l'écart entre les strikes.",
-                "Marché haussier, neutre, ou rebond sur un support technique."
+                "Vente Put (K1) + Achat Put (K2).",
+                "Crédit Spread (Haussier). Encaissement de prime si le marché ne baisse pas.",
+                "Support technique."
             )
+        },
+        "Seagull": {
+            "Long": format_desc(
+                "Bull Call Spread (Achat K1/Vente K2) + Vente Put (K3).",
+                "Produit Structuré. Financement total de la hausse (Call Spread) par la vente du Put. Souvent 'Zero Premium'. Risque baissier similaire à l'action.",
+                "Marché haussier, mais on est prêt à acheter le titre si le marché s'effondre (au Strike K3)."
+            ),
+            "Short": "N/A (Structure complexe rarement shortée telle quelle)."
         },
         "Butterfly": {
             "Long": format_desc(
-                "Achat Call (K1) + Vente 2 Calls (K2) + Achat Call (K3).",
-                "Arbitrage de Volatilité (Short Gamma). Stratégie visant à capturer la valeur temps maximale. Le profit est optimal si le cours expire exactement sur le strike central K2.",
-                "Marché sans tendance, anémique. Anticipation d'une baisse de volatilité (Volatility Crush)."
+                "Achat K1 + Vente 2x K2 + Achat K3.",
+                "Arbitrage de Volatilité (Short Gamma). Capture maximale de Theta sur un point précis.",
+                "Marché anémique, baisse de volatilité."
             ),
-            "Short": format_desc(
-                "Vente Call (K1) + Achat 2 Calls (K2) + Vente Call (K3).",
-                "Long Volatilité à risque défini. Profitable si le cours sort violemment de la zone centrale, peu importe la direction.",
-                "Sortie de congestion imminente (Breakout) attendue."
-            )
+            "Short": "N/A"
         },
         "Call Ratio Backspread": {
             "Long": format_desc(
                 "Vente 1 Call (ATM) + Achat 2 Calls (OTM).",
-                "Stratégie convexe (Long Volatilité). La vente du Call ATM finance l'achat des Calls OTM (souvent à coût nul ou crédit). Profit illimité à la hausse, risque limité si le marché baisse.",
-                "**Spécial Commodities / Tech.** Anticipation d'un 'Spike' violent à la hausse (Guerre, Pénurie). On accepte une perte légère si le marché monte doucement (Trap Zone), pour viser le Home Run."
+                "Volatilité convexe haussière. Gain illimité, risque limité (souvent crédit initial).",
+                "Explosion haussière type Commodities."
+            ),
+            "Short": "N/A"
+        },
+        "Put Ratio Backspread": {
+            "Long": format_desc(
+                "Vente 1 Put (ATM) + Achat 2 Puts (OTM).",
+                "Protection Crash aggressive. Si le marché baisse un peu, on perd. Si le marché s'effondre, gain massif.",
+                "Couverture contre un Krach systémique à moindre frais."
+            ),
+            "Short": "N/A"
+        },
+        "Synthetic Long": {
+            "Long": format_desc(
+                "Achat Call (ATM) + Vente Put (ATM).",
+                "Réplication synthétique (Delta One). Comportement identique à l'action mais utilisation du capital (margin) très faible.",
+                "Volonté d'exposition linéaire sans immobiliser de cash."
             ),
             "Short": format_desc(
-                "Achat 1 Call (ATM) + Vente 2 Calls (OTM).",
-                "Stratégie Contrarian très risquée (Naked Short). Pari que la hausse va s'essouffler précisément sur le strike vendu.",
-                "Non standard. Déconseillé sans couverture dynamique."
+                "Vente Call (ATM) + Achat Put (ATM).",
+                "Position courte synthétique. Permet de shorter sans emprunt de titres.",
+                "Baisse anticipée."
             )
         }
     }
@@ -167,15 +207,17 @@ def get_strategy_description(strategy, position):
 def get_strategy_legs(strategy, K, width_lower, width_upper, position="Long"):
     pos_mult = 1 if position == "Long" else -1
     
-    # Stratégies simples (Call/Put/Straddle)
+    # 1. Stratégies Simples
     if strategy == "Call":
         return [("Call", 1.0, 1 * pos_mult)]
     elif strategy == "Put":
         return [("Put", 1.0, 1 * pos_mult)]
     elif strategy == "Straddle":
         return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, 1 * pos_mult)]
-        
-    # Stratégies utilisant la borne HAUTE (Call OTM)
+    elif strategy == "Synthetic Long":
+        return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, -1 * pos_mult)]
+
+    # 2. Stratégies bornées HAUTE (Call OTM)
     elif strategy == "Covered Call":
         return [("Stock", 0, 1), ("Call", 1.0 + width_upper, -1)] 
     elif strategy == "Bull Call Spread":
@@ -183,18 +225,35 @@ def get_strategy_legs(strategy, K, width_lower, width_upper, position="Long"):
     elif strategy == "Call Ratio Backspread":
         return [("Call", 1.0, -1 * pos_mult), ("Call", 1.0 + width_upper, 2 * pos_mult)]
         
-    # Stratégies utilisant la borne BASSE (Put OTM)
+    # 3. Stratégies bornées BASSE (Put OTM)
     elif strategy == "Protective Put":
         return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1)] 
     elif strategy == "Bear Put Spread":
         return [("Put", 1.0, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
+    elif strategy == "Put Ratio Backspread":
+        # Vente Put ATM, Achat 2 Puts OTM (Plus bas)
+        return [("Put", 1.0, -1 * pos_mult), ("Put", 1.0 - width_lower, 2 * pos_mult)]
         
-    # Stratégies utilisant les DEUX bornes
+    # 4. Stratégies DOUBLE bornes (Haut et Bas)
     elif strategy == "Strangle":
         return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, 1 * pos_mult)]
     elif strategy == "Butterfly":
         return [("Call", 1.0 - width_lower, 1*pos_mult), ("Call", 1.0, -2*pos_mult), ("Call", 1.0 + width_upper, 1*pos_mult)]
     
+    # 5. NOUVELLES STRATEGIES COMPLEXES
+    elif strategy == "Collar":
+        # Long Stock + Long Put (Bas) + Short Call (Haut)
+        return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1), ("Call", 1.0 + width_upper, -1)]
+        
+    elif strategy == "Risk Reversal":
+        # Long Call (Haut), Short Put (Bas) -> Bullish RR
+        return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
+        
+    elif strategy == "Seagull":
+        # Bull Call Spread (Achat ATM, Vente Haut) + Vente Put (Bas)
+        # Structure Bullish standard
+        return [("Call", 1.0, 1), ("Call", 1.0 + width_upper, -1), ("Put", 1.0 - width_lower, -1)]
+
     return []
 
 # --- 3. INTERFACE ---
@@ -206,15 +265,21 @@ col_params, col_viz = st.columns([1, 3])
 with col_params:
     with st.container(border=True):
         st.header("1. Structuration")
-        strat_list = ["Call", "Put", "Covered Call", "Protective Put", 
-                      "Straddle", "Strangle", "Bull Call Spread", "Bear Put Spread", 
-                      "Butterfly", "Call Ratio Backspread"]
+        # Liste enrichie
+        strat_list = [
+            "Call", "Put", "Synthetic Long", # Basique
+            "Covered Call", "Protective Put", "Collar", # Action + Option
+            "Straddle", "Strangle", "Butterfly", # Volatilité
+            "Bull Call Spread", "Bear Put Spread", "Seagull", "Risk Reversal", # Directionnel Structuré
+            "Call Ratio Backspread", "Put Ratio Backspread" # Anti-Crash / Convexité
+        ]
         
-        selected_strat = st.selectbox("Produit", strat_list, index=9)
+        selected_strat = st.selectbox("Produit", strat_list, index=0)
         
-        if selected_strat in ["Covered Call", "Protective Put"]:
+        # Gestion des stratégies "Long Only" (celles qui incluent du Stock ou complexes)
+        if selected_strat in ["Covered Call", "Protective Put", "Collar", "Seagull"]:
             position = "Long"
-            st.info("Structure Long Only")
+            st.info("Structure Standard (Long)")
         else:
             position = st.pills("Direction", ["Long", "Short"], default="Long")
             
@@ -222,8 +287,16 @@ with col_params:
         st.header("2. Paramètres Avancés")
         
         # LOGIQUE D'AFFICHAGE DYNAMIQUE DES SLIDERS
-        show_upper = selected_strat in ["Covered Call", "Bull Call Spread", "Call Ratio Backspread", "Strangle", "Butterfly"]
-        show_lower = selected_strat in ["Protective Put", "Bear Put Spread", "Strangle", "Butterfly"]
+        
+        # Upper Spread utile pour : Call OTM
+        upper_strategies = ["Covered Call", "Bull Call Spread", "Call Ratio Backspread", 
+                            "Strangle", "Butterfly", "Collar", "Risk Reversal", "Seagull"]
+        show_upper = selected_strat in upper_strategies
+        
+        # Lower Spread utile pour : Put OTM
+        lower_strategies = ["Protective Put", "Bear Put Spread", "Put Ratio Backspread", 
+                            "Strangle", "Butterfly", "Collar", "Risk Reversal", "Seagull"]
+        show_lower = selected_strat in lower_strategies
 
         width_lower = 0.10
         width_upper = 0.10
@@ -244,7 +317,7 @@ with col_params:
         S = st.number_input("Spot Price (S)", value=100.0)
         K = st.number_input("Strike Central (K)", value=100.0)
         T = st.slider("Maturity (Years)", 0.01, 2.0, 0.5, step=0.01)
-        sigma = st.slider("Implied Volatility (sigma)", 0.05, 2.00, 0.35)
+        sigma = st.slider("Implied Volatility (sigma)", 0.05, 2.00, 0.30)
         r = st.number_input("Risk Free Rate (r)", value=0.04)
 
 # Calculs
@@ -269,7 +342,6 @@ for leg_type, strike_mult, qty in legs_config:
 with col_viz:
     with st.expander("Fiche Produit & Analyse", expanded=True):
         st.subheader(f"{selected_strat} ({position})")
-        # Affichage du texte en format pré-calculé (text simple pour éviter interprétation markdown complexe inutile)
         st.text(get_strategy_description(selected_strat, position))
 
     kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
@@ -282,6 +354,7 @@ with col_viz:
 
     st.subheader("Simulateur P&L")
     
+    # Range élargi pour bien voir les produits exotiques
     S_range = np.linspace(S * 0.5, S * 1.8, 300)
     
     pnl_maturity = np.zeros_like(S_range) - total_price 
@@ -304,7 +377,8 @@ with col_viz:
     for t, k, q in real_legs_details:
         if k > 0:
             ax.axvline(k, color='gray', linestyle=':', alpha=0.5)
-            ax.text(k, ax.get_ylim()[1]*0.9, f"{'L' if q>0 else 'S'} {k:.0f}", color='white', ha='center', fontsize=8)
+            # Affichage discret des strikes sur le graph
+            ax.text(k, ax.get_ylim()[1]*0.95, f"{k:.0f}", color='white', ha='center', fontsize=7, alpha=0.7)
 
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
