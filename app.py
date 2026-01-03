@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Configuration de la page
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
 
-# --- 1. MOTEUR MATHÉMATIQUE (Inchangé) ---
+# --- 1. MOTEUR MATHÉMATIQUE ---
 def black_scholes(S, K, T, r, sigma, q, option_type="Call"):
     if option_type == "Stock": return S 
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
@@ -40,7 +40,6 @@ def get_strategy_description(strategy, position):
         Contexte Marché :
         {contexte}
         """
-    # (Je garde les descriptions précédentes qui étaient bonnes, focus sur les grecques plus bas)
     desc = {
         "Call": {"Long": format_desc("Achat Call (K).", "Levier directionnel.", "Momentum."), "Short": format_desc("Vente Call.", "Yield.", "Baissier.")},
         "Put": {"Long": format_desc("Achat Put (K).", "Protection/Spéculation.", "Correction."), "Short": format_desc("Vente Put.", "Target Buying.", "Neutre/Haussier.")},
@@ -62,9 +61,7 @@ def get_strategy_description(strategy, position):
     }
     return desc.get(strategy, {}).get(position, "N/A")
 
-# --- NOUVELLE FONCTION : EXPLICATION TECHNIQUE DES GRECQUES ---
 def get_greeks_profile(strategy, position):
-    
     profiles = {
         "Call": {
             "Long": ("Positif. Delta = Probabilité approximative d'exercice.", "Positif. Accélération maximale ATM.", "Négatif. L'option est un actif périssable.", "Positif. Vega maximal ATM."),
@@ -107,7 +104,7 @@ def get_greeks_profile(strategy, position):
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Butterfly": {
-            "Long": ("Neutre.", "Négatif (Zone profit). La vente de 2 ATM (Gamma Max) domine l'achat des ailes OTM.", "Positif Fort. Le Theta des 2 options vendues finance largement les ailes.", "Négatif. Vous êtes Short Volatilité au cœur de la structure."),
+            "Long": ("Neutre.", "Négatif au centre (Short Gamma).", "Positif Fort. Le Theta des 2 options vendues finance largement les ailes.", "Négatif. Vous êtes Short Volatilité au cœur de la structure."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Call Ratio Backspread": {
@@ -131,11 +128,10 @@ def get_greeks_profile(strategy, position):
             "Short": ("Neutre.", "Positif. Zone centrale Long Gamma.", "Négatif.", "Positif.")
         },
         "Strap": {
-            "Long": ("Positif Fort. 2 Calls vs 1 Put crée un biais haussier net.", "Positif Fort. 3 options achetées = Gamma massif.", "Négatif Fort. 3 primes à payer chaque jour.", "Positif Fort. Exposition Vega triplée."),
-            "Short": ("Négatif Fort.", "Négatif Fort.", "Positif Fort.", "Négatif Fort.")
+            "Long": ("Positif (Biais Haussier).", "Positif Fort. 3 options achetées = Gamma massif.", "Négatif Fort. 3 primes à payer chaque jour.", "Positif Fort. Exposition Vega triplée."),
+            "Short": ("Négatif (Biais Baissier).", "Négatif Fort.", "Positif Fort.", "Négatif Fort.")
         }
     }
-    
     return profiles.get(strategy, {}).get(position, ("N/A", "N/A", "N/A", "N/A"))
 
 def get_strategy_legs(strategy, K, width_lower, width_upper, position="Long"):
@@ -298,10 +294,30 @@ with col_viz:
     ax.axhline(0, color='gray', linewidth=1)
     ax.axvline(S, color='#FFD700', linestyle='--', label=f"Spot: {S}")
     
+    # --- AJOUT: MARQUAGE OTM / ITM / ATM POUR CALL ET PUT ---
+    if selected_strat in ["Call", "Put"]:
+        # On récupère le strike (c'est la première et seule jambe)
+        strike_plot = real_legs_details[0][1]
+        y_max = ax.get_ylim()[1]
+        
+        # Etiquette ATM
+        ax.text(strike_plot, y_max * 0.95, "ATM", color='#FFD700', ha='center', fontweight='bold')
+        
+        # Etiquettes ITM / OTM selon le type
+        if selected_strat == "Call":
+            ax.text(strike_plot * 0.85, y_max * 0.85, "OTM", color='cyan', ha='center', fontsize=10, alpha=0.8)
+            ax.text(strike_plot * 1.15, y_max * 0.85, "ITM", color='cyan', ha='center', fontsize=10, alpha=0.8)
+        else: # Put
+            ax.text(strike_plot * 0.85, y_max * 0.85, "ITM", color='cyan', ha='center', fontsize=10, alpha=0.8)
+            ax.text(strike_plot * 1.15, y_max * 0.85, "OTM", color='cyan', ha='center', fontsize=10, alpha=0.8)
+
+    # Marquage standard des strikes pour les autres stratégies
     for t, k, q in real_legs_details:
         if k > 0:
             ax.axvline(k, color='gray', linestyle=':', alpha=0.5)
-            ax.text(k, ax.get_ylim()[1]*0.95, f"{k:.0f}", color='white', ha='center', fontsize=7, alpha=0.7)
+            # Petit texte discret pour les autres produits
+            if selected_strat not in ["Call", "Put"]:
+                ax.text(k, ax.get_ylim()[1]*0.95, f"{k:.0f}", color='white', ha='center', fontsize=7, alpha=0.7)
 
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
@@ -318,7 +334,6 @@ with col_viz:
     legs_data = [{"Type": t, "Strike": f"{k:.2f}" if k > 0 else "Mkt", "Qté": q, "Side": "Long" if q > 0 else "Short"} for t, k, q in real_legs_details]
     st.dataframe(legs_data, use_container_width=True)
 
-    # --- AFFICHAGE PRO DES GRECQUES ---
     st.divider()
     st.subheader("Analyse des Risques (Sensibilités)")
     
