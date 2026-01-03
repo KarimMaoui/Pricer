@@ -6,27 +6,20 @@ import matplotlib.pyplot as plt
 # Configuration de la page
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
 
-# --- 1. MOTEUR MATHÉMATIQUE ---
-
+# --- 1. MOTEUR MATHÉMATIQUE (Inchangé) ---
 def black_scholes(S, K, T, r, sigma, q, option_type="Call"):
-    if option_type == "Stock":
-        return S 
-
+    if option_type == "Stock": return S 
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     if option_type == "Call":
-        price = S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+        return S * np.exp(-q * T) * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
     else:
-        price = K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
-    return price
+        return K * np.exp(-r * T) * norm.cdf(-d2) - S * np.exp(-q * T) * norm.cdf(-d1)
 
 def get_greeks(S, K, T, r, sigma, q, option_type="Call"):
-    if option_type == "Stock":
-        return 1.0, 0.0, 0.0, 0.0 
-
+    if option_type == "Stock": return 1.0, 0.0, 0.0, 0.0 
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
-    
     delta = np.exp(-q * T) * (norm.cdf(d1) if option_type == "Call" else -norm.cdf(-d1))
     gamma = np.exp(-q * T) * norm.pdf(d1) / (S * sigma * np.sqrt(T))
     vega = S * np.exp(-q * T) * np.sqrt(T) * norm.pdf(d1) / 100
@@ -47,154 +40,99 @@ def get_strategy_description(strategy, position):
         Contexte Marché :
         {contexte}
         """
-
+    # (Je garde les descriptions précédentes qui étaient bonnes, focus sur les grecques plus bas)
     desc = {
-        "Call": {
-            "Long": format_desc("Achat Call (Strike K).", "Levier directionnel. Perte limitée à la prime.", "Momentum haussier."),
-            "Short": format_desc("Vente Call (Naked).", "Yield. Gain capé à la prime. Risque illimité.", "Marché baissier/Neutre.")
-        },
-        "Put": {
-            "Long": format_desc("Achat Put (Strike K).", "Protection ou spéculation baissière.", "Correction/Hedge."),
-            "Short": format_desc("Vente Put (Naked).", "Target Buying. Engagement d'achat.", "Neutre/Haussier.")
-        },
-        "Covered Call": {
-            "Long": format_desc("Long Stock + Short Call (OTM).", "Yield Enhancement. Upside capé.", "Neutre/Haussier lent."),
-            "Short": "N/A"
-        },
-        "Protective Put": {
-            "Long": format_desc("Long Stock + Long Put (OTM).", "Assurance Portefeuille.", "Incertitude."),
-            "Short": "N/A"
-        },
-        "Collar": {
-            "Long": format_desc("Long Stock + Long Put (Bas) + Short Call (Haut).", "Protection financée (Zero Cost).", "Prudence."),
-            "Short": "N/A"
-        },
-        "Risk Reversal": {
-            "Long": format_desc("Long Call (Haut) + Short Put (Bas).", "Synthétique directionnel financé.", "Retournement haussier."),
-            "Short": format_desc("Short Call (Haut) + Long Put (Bas).", "Synthétique baissier financé.", "Retournement baissier.")
-        },
-        "Straddle": {
-            "Long": format_desc("Achat Call (ATM) + Achat Put (ATM).", "Volatilité Pure. Pari sur l'amplitude.", "Earnings/Event."),
-            "Short": format_desc("Vente Call (ATM) + Vente Put (ATM).", "Short Volatilité.", "Range strict.")
-        },
-        "Strangle": {
-            "Long": format_desc("Achat Call (OTM) + Achat Put (OTM).", "Volatilité Low-Cost.", "Black Swan."),
-            "Short": format_desc("Vente Call (OTM) + Vente Put (OTM).", "Short Volatilité Large.", "Marché latéral.")
-        },
-        "Strap": {
-            "Long": format_desc("Achat 2 Calls (ATM) + Achat 1 Put (ATM).", "Volatilité Biais Haussier.", "Volatilité + Hausse."),
-            "Short": format_desc("Vente 2 Calls (ATM) + Vente 1 Put (ATM).", "Short Volatilité Biais Baissier.", "Calme/Baisse.")
-        },
-        "Condor": {
-            "Long": format_desc("Call Spread (K1/K2) + Put Spread (K3/K4).", "Arbitrage de Volatilité (Zone).", "Marché calme."),
-            "Short": format_desc("Short Call Spread + Short Put Spread.", "Volatilité (Breakout).", "Sortie de range.")
-        },
-        "Bull Call Spread": {
-            "Long": format_desc("Achat Call (K1) + Vente Call (K2).", "Directionnel optimisé.", "Hausse modérée."),
-            "Short": format_desc("Vente Call (K1) + Achat Call (K2).", "Crédit Spread (Baissier).", "Résistance.")
-        },
-        "Bear Put Spread": {
-            "Long": format_desc("Achat Put (K1) + Vente Put (K2).", "Directionnel optimisé.", "Baisse modérée."),
-            "Short": format_desc("Vente Put (K1) + Achat Put (K2).", "Crédit Spread (Haussier).", "Support.")
-        },
-        "Seagull": {
-            "Long": format_desc("Bull Call Spread + Vente Put (Bas).", "Financement total de la hausse.", "Haussier + Target Buying."),
-            "Short": "N/A"
-        },
-        "Butterfly": {
-            "Long": format_desc("Achat K1 + Vente 2x K2 + Achat K3.", "Arbitrage Volatilité (Short Gamma).", "Marché anémique."),
-            "Short": "N/A"
-        },
-        "Call Ratio Backspread": {
-            "Long": format_desc("Vente 1 Call (ATM) + Achat 2 Calls (OTM).", "Volatilité convexe haussière.", "Explosion haussière."),
-            "Short": "N/A"
-        },
-        "Put Ratio Backspread": {
-            "Long": format_desc("Vente 1 Put (ATM) + Achat 2 Puts (OTM).", "Protection Crash aggressive.", "Couverture Krach."),
-            "Short": "N/A"
-        },
-        "Synthetic Long": {
-            "Long": format_desc("Achat Call (ATM) + Vente Put (ATM).", "Réplication Delta One.", "Exposition linéaire."),
-            "Short": format_desc("Vente Call (ATM) + Achat Put (ATM).", "Short synthétique.", "Baisse anticipée.")
-        }
+        "Call": {"Long": format_desc("Achat Call (K).", "Levier directionnel.", "Momentum."), "Short": format_desc("Vente Call.", "Yield.", "Baissier.")},
+        "Put": {"Long": format_desc("Achat Put (K).", "Protection/Spéculation.", "Correction."), "Short": format_desc("Vente Put.", "Target Buying.", "Neutre/Haussier.")},
+        "Covered Call": {"Long": format_desc("Long Stock + Short Call.", "Yield Enhancement.", "Neutre/Haussier lent."), "Short": "N/A"},
+        "Protective Put": {"Long": format_desc("Long Stock + Long Put.", "Assurance.", "Incertitude."), "Short": "N/A"},
+        "Collar": {"Long": format_desc("Long Stock + Long Put (Bas) + Short Call (Haut).", "Zero Cost Protection.", "Prudence."), "Short": "N/A"},
+        "Risk Reversal": {"Long": format_desc("Long Call + Short Put.", "Synthétique financé.", "Reversal."), "Short": format_desc("Short Call + Long Put.", "Synthétique baissier.", "Reversal.")},
+        "Straddle": {"Long": format_desc("Long Call ATM + Long Put ATM.", "Volatilité Pure.", "Event."), "Short": format_desc("Short Call ATM + Short Put ATM.", "Short Vol.", "Range.")},
+        "Strangle": {"Long": format_desc("Long Call OTM + Long Put OTM.", "Volatilité Low-Cost.", "Black Swan."), "Short": format_desc("Short Call OTM + Short Put OTM.", "Short Vol Large.", "Sideways.")},
+        "Strap": {"Long": format_desc("2 Long Calls + 1 Long Put.", "Volatilité Biais Haussier.", "Volatilité + Hausse."), "Short": format_desc("2 Short Calls + 1 Short Put.", "Short Vol Biais Baissier.", "Calme.")},
+        "Condor": {"Long": format_desc("Long Wings + Short Body.", "Arbitrage Volatilité.", "Range."), "Short": format_desc("Short Wings + Long Body.", "Volatilité.", "Breakout.")},
+        "Bull Call Spread": {"Long": format_desc("Long Call K1 + Short Call K2.", "Directionnel optimisé.", "Hausse modérée."), "Short": format_desc("Short Call K1 + Long Call K2.", "Crédit Spread.", "Résistance.")},
+        "Bear Put Spread": {"Long": format_desc("Long Put K1 + Short Put K2.", "Directionnel optimisé.", "Baisse modérée."), "Short": format_desc("Short Put K1 + Long Put K2.", "Crédit Spread.", "Support.")},
+        "Seagull": {"Long": format_desc("Bull Call Spread + Short Put.", "Hausse financée.", "Haussier + Target Buying."), "Short": "N/A"},
+        "Butterfly": {"Long": format_desc("Long K1 + Short 2x K2 + Long K3.", "Short Gamma.", "Marché anémique."), "Short": "N/A"},
+        "Call Ratio Backspread": {"Long": format_desc("Short 1 Call + Long 2 Calls.", "Volatilité convexe.", "Explosion."), "Short": "N/A"},
+        "Put Ratio Backspread": {"Long": format_desc("Short 1 Put + Long 2 Puts.", "Protection Crash.", "Krach."), "Short": "N/A"},
+        "Synthetic Long": {"Long": format_desc("Long Call + Short Put.", "Delta One.", "Linéaire."), "Short": format_desc("Short Call + Long Put.", "Short synthétique.", "Baisse.")}
     }
     return desc.get(strategy, {}).get(position, "N/A")
 
-# --- NOUVELLE FONCTION : EXPLICATION DES GRECQUES ---
+# --- NOUVELLE FONCTION : EXPLICATION TECHNIQUE DES GRECQUES ---
 def get_greeks_profile(strategy, position):
-    # Dictionnaire contenant l'explication PRO des signes pour chaque produit
-    
-    # Template générique pour simplifier
-    neutral = "Neutre ou négligeable."
     
     profiles = {
         "Call": {
-            "Long": ("Positif. L'exposition est longue directionnelle.", "Positif. Accélération des gains à la hausse.", "Négatif. Le temps érode la prime payée.", "Positif. Achat de volatilité."),
-            "Short": ("Négatif. Exposition courte directionnelle.", "Négatif. Risque accru si le marché monte.", "Positif. Le temps joue pour vous.", "Négatif. Vente de volatilité.")
+            "Long": ("Positif. Delta = Probabilité approximative d'exercice.", "Positif. Accélération maximale ATM.", "Négatif. L'option est un actif périssable.", "Positif. Vega maximal ATM."),
+            "Short": ("Négatif. Vous êtes contre le marché.", "Négatif. Risque de 'Gap' contre vous.", "Positif. Vous encaissez la valeur temps.", "Négatif. La baisse de vol réduit votre coût de rachat.")
         },
         "Put": {
-            "Long": ("Négatif. L'exposition est courte directionnelle.", "Positif. Protection croissante à la baisse.", "Négatif. Le temps érode la prime payée.", "Positif. Protection contre la panique."),
-            "Short": ("Positif. Exposition longue (ou neutre).", "Négatif. Risque accru si le marché baisse.", "Positif. Le temps joue pour vous.", "Négatif. Vente de volatilité.")
+            "Long": ("Négatif. Delta tend vers -1 si ITM.", "Positif. L'option devient plus sensible si le marché baisse.", "Négatif. Coût de portage.", "Positif. Le Put prend de la valeur si la peur monte."),
+            "Short": ("Positif. Delta tend vers 0 si OTM.", "Négatif. Risque accéléré à la baisse.", "Positif. Rente quotidienne.", "Négatif. Vous vendez de l'assurance.")
         },
         "Covered Call": {
-            "Long": ("Positif (mais < 1). Atténué par le Call vendu.", "Négatif. Le Call vendu freine les gains.", "Positif. La vente du Call génère du Theta.", "Négatif. La baisse de vol favorise le Call vendu."),
+            "Long": ("Positif réduit. Le Short Call K2 freine le Delta du stock (1.0).", "Négatif. Le Gamma du Short Call domine (le Stock a un Gamma de 0).", "Positif. Seule la jambe Short Call génère du Theta.", "Négatif. Si la Vol monte, le Call vendu devient plus cher à racheter."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Protective Put": {
-            "Long": ("Positif. Positif mais réduit par le Put.", "Positif. Le Put ajoute de la convexité.", "Négatif. Coût de l'assurance.", "Positif. Sensible à la hausse de vol."),
+            "Long": ("Positif. Le Delta du Put (-0.x) réduit le Delta du Stock (1.0).", "Positif. Le Gamma du Put vous rend plus long quand le marché baisse.", "Négatif. Vous payez la prime d'assurance.", "Positif. Votre protection vaut plus cher si la vol monte."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Collar": {
-            "Long": ("Positif. Encadré par le tunnel.", "Variable. Change de signe aux bornes.", "Variable. Dépend des primes respectives.", "Variable. Arbitrage de Skew."),
+            "Long": ("Positif. Encadré par le Call vendu (Haut) et le Put acheté (Bas).", "Variable. Long Gamma en bas (Put), Short Gamma en haut (Call).", "Variable. Dépend si la prime reçue (Call) couvre la prime payée (Put).", "Négatif (Souvent). On vend souvent un Call plus riche en Vol (Skew) que le Put."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Straddle": {
-            "Long": ("Neutre. Ajustement dynamique nécessaire.", "Positif (Maximal). Profit sur gros écarts.", "Négatif (Fort). Coût élevé du temps.", "Positif (Fort). Pure Vega."),
-            "Short": ("Neutre.", "Négatif (Fort). Danger sur gros écarts.", "Positif (Fort). Gain temps maximal.", "Négatif (Fort). Short Vega.")
+            "Long": ("Neutre (si ATM). Doit être Delta-Hedgé dynamiquement.", "Positif Fort. Cumul des Gamma du Call et du Put. Max ATM.", "Négatif Fort. Vous payez deux primes temporelles.", "Positif Fort. Pure exposition Volatilité."),
+            "Short": ("Neutre.", "Négatif Fort. Danger immédiat si le spot décale.", "Positif Fort. Gain maximal si le spot ne bouge pas.", "Négatif Fort. Short Vol pur.")
         },
         "Strangle": {
-            "Long": ("Neutre.", "Positif. Moins fort que le Straddle.", "Négatif. Moins fort que le Straddle.", "Positif. Vega OTM."),
+            "Long": ("Neutre.", "Positif. Moins fort que le Straddle car les strikes sont OTM (Gamma plus faible).", "Négatif. Moins coûteux que le Straddle.", "Positif. Sensibilité Vega présente mais plus faible qu'ATM."),
             "Short": ("Neutre.", "Négatif.", "Positif.", "Négatif.")
         },
         "Bull Call Spread": {
-            "Long": ("Positif. Plafonné au strike haut.", "Positif (Bas) / Négatif (Haut).", "Négatif (Bas) / Positif (Haut).", "Variable. Long Vega K1 / Short Vega K2."),
-            "Short": ("Négatif.", "Négatif (Bas) / Positif (Haut).", "Positif (Bas) / Négatif (Haut).", "Variable.")
+            "Long": ("Positif. Différence entre le Delta K1 (fort) et K2 (faible).", "Positif/Négatif. Flip de Gamma : Long Gamma en bas, Short Gamma en haut.", "Négatif/Positif. Vous payez du Theta sur K1, vous en recevez sur K2.", "Variable. Long Vega sur K1, Short sur K2. Souvent Net Long Vega."),
+            "Short": ("Négatif.", "Négatif/Positif.", "Positif/Négatif.", "Variable.")
         },
         "Bear Put Spread": {
-            "Long": ("Négatif. Plafonné au strike bas.", "Positif (Haut) / Négatif (Bas).", "Négatif (Haut) / Positif (Bas).", "Variable. Long Vega K1 / Short Vega K2."),
+            "Long": ("Négatif.", "Positif (Haut) / Négatif (Bas).", "Négatif (Haut) / Positif (Bas).", "Variable. Long Vega sur K1, Short sur K2."),
             "Short": ("Positif.", "Négatif (Haut) / Positif (Bas).", "Positif (Haut) / Négatif (Bas).", "Variable.")
         },
-        "Call Ratio Backspread": {
-            "Long": ("Variable (Souvent Positif).", "Positif (Fort). Convexité des 2 Calls.", "Variable.", "Positif. Net Long Vega."),
-            "Short": ("N/A", "N/A", "N/A", "N/A")
-        },
-         "Put Ratio Backspread": {
-            "Long": ("Variable (Souvent Négatif).", "Positif (Fort). Convexité des 2 Puts.", "Variable.", "Positif. Net Long Vega."),
+        "Seagull": {
+            "Long": ("Positif. Similaire au sous-jacent + effet levier du Call Spread.", "Négatif (Souvent). Le Short Put et le Short Call (Bornes) écrasent le Gamma du Call acheté.", "Positif. Les deux ventes financent largement le Theta du Call acheté.", "Négatif (Souvent). Vous vendez 2 pattes (Put bas + Call haut). La somme des Vega vendus dépasse le Vega acheté."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Butterfly": {
-            "Long": ("Neutre.", "Négatif au centre (Short Gamma).", "Positif (Fort). Gain temps maximal.", "Négatif. Short Volatilité."),
+            "Long": ("Neutre.", "Négatif (Zone profit). La vente de 2 ATM (Gamma Max) domine l'achat des ailes OTM.", "Positif Fort. Le Theta des 2 options vendues finance largement les ailes.", "Négatif. Vous êtes Short Volatilité au cœur de la structure."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
-        "Seagull": {
-            "Long": ("Positif. Similaire au sous-jacent.", "Variable. Complexe aux bornes.", "Variable.", "Variable (Souvent Short Vega)."),
+        "Call Ratio Backspread": {
+            "Long": ("Variable (Souvent Positif).", "Positif Fort. Vous possédez 2 Calls pour 1 vendu. La convexité est doublée.", "Variable.", "Positif. Quantité : 2x Vega OTM > 1x Vega ATM."),
+            "Short": ("N/A", "N/A", "N/A", "N/A")
+        },
+        "Put Ratio Backspread": {
+            "Long": ("Variable (Souvent Négatif).", "Positif Fort. Convexité doublée à la baisse.", "Variable.", "Positif. Quantité : 2x Vega OTM > 1x Vega ATM."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Risk Reversal": {
-            "Long": ("Positif. Synthétique Long.", "Neutre (Linéaire).", "Neutre.", "Neutre (Arbitrage de Skew)."),
-            "Short": ("Négatif. Synthétique Short.", "Neutre.", "Neutre.", "Neutre.")
+            "Long": ("Positif. Cumul du Delta Call et Delta Put (Short Put = Delta positif).", "Neutre. Les Gamma sont souvent éloignés et faibles.", "Neutre.", "Neutre/Variable. Arbitrage de Skew : si Put plus cher que Call, on est Short Vega."),
+            "Short": ("Négatif.", "Neutre.", "Neutre.", "Neutre.")
         },
         "Synthetic Long": {
-            "Long": ("Positif (100%). Delta One.", "Neutre.", "Neutre.", "Neutre."),
-            "Short": ("Négatif (100%). Delta One.", "Neutre.", "Neutre.", "Neutre.")
+            "Long": ("Positif (100%). Delta fixe de 1.0 (Call Delta + Put Delta).", "Neutre. Gamma Call et Gamma Put s'annulent.", "Neutre. Theta Call et Put s'annulent.", "Neutre. Vega Call et Put s'annulent."),
+            "Short": ("Négatif (100%).", "Neutre.", "Neutre.", "Neutre.")
         },
         "Condor": {
-            "Long": ("Neutre.", "Négatif (Zone centrale).", "Positif. Gain temps sur le plateau.", "Négatif. Short Volatilité."),
-            "Short": ("Neutre.", "Positif (Zone centrale).", "Négatif. Coût du temps.", "Positif. Long Volatilité.")
+            "Long": ("Neutre.", "Négatif. Zone centrale Short Gamma (Vente K2/K3).", "Positif. Gain temps maximal sur le plateau.", "Négatif. Short Volatilité sur toute la zone de profit."),
+            "Short": ("Neutre.", "Positif. Zone centrale Long Gamma.", "Négatif.", "Positif.")
         },
         "Strap": {
-            "Long": ("Positif (Biais Haussier).", "Positif (Fort).", "Négatif (Fort).", "Positif (Fort)."),
-            "Short": ("Négatif (Biais Baissier).", "Négatif (Fort).", "Positif (Fort).", "Négatif (Fort).")
+            "Long": ("Positif Fort. 2 Calls vs 1 Put crée un biais haussier net.", "Positif Fort. 3 options achetées = Gamma massif.", "Négatif Fort. 3 primes à payer chaque jour.", "Positif Fort. Exposition Vega triplée."),
+            "Short": ("Négatif Fort.", "Négatif Fort.", "Positif Fort.", "Négatif Fort.")
         }
     }
     
@@ -384,7 +322,6 @@ with col_viz:
     st.divider()
     st.subheader("Analyse des Risques (Sensibilités)")
     
-    # Récupération des explications dynamiques
     txt_delta, txt_gamma, txt_theta, txt_vega = get_greeks_profile(selected_strat, position)
     
     risk1, risk2, risk3, risk4 = st.columns(4)
