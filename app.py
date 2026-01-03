@@ -424,6 +424,59 @@ with col_viz:
     st.caption("Détail de la structuration")
     legs_data = [{"Type": t, "Strike": f"{k:.2f}" if k > 0 else "Mkt", "Qté": q, "Side": "Long" if q > 0 else "Short"} for t, k, q in real_legs_details]
     st.dataframe(legs_data, use_container_width=True)
+# ... (Code précédent : st.dataframe(legs_data ...))
 
+    st.divider()
+    st.subheader("Analyse des Risques (Grecques)")
+    
+    g_col1, g_col2, g_col3, g_col4 = st.columns(4)
+    
+    with g_col1:
+        st.markdown("**Delta (Direction)**")
+        if total_delta > 0.1:
+            st.markdown(f":green[Positif ({total_delta:.2f})]")
+            st.caption("Biais Haussier. Vous gagnez si le marché monte. Position équivalente à détenir des actions.")
+        elif total_delta < -0.1:
+            st.markdown(f":red[Négatif ({total_delta:.2f})]")
+            st.caption("Biais Baissier. Vous gagnez si le marché baisse. Position short.")
+        else:
+            st.markdown("Neutre")
+            st.caption("Delta Neutre. Peu sensible aux petits mouvements directionnels.")
+
+    with g_col2:
+        st.markdown("**Gamma (Accélération)**")
+        if total_gamma > 0.001:
+            st.markdown(f":green[Long Gamma]")
+            st.caption("Convexité. Vos gains accélèrent quand le marché bouge fort (dans votre sens). Vous aimez le mouvement.")
+        elif total_gamma < -0.001:
+            st.markdown(f":red[Short Gamma]")
+            st.caption("Concavité. Vos pertes accélèrent si le marché bouge fort contre vous. Vous préférez la stabilité.")
+        else:
+            st.markdown("Faible")
+            st.caption("Profil de risque linéaire.")
+
+    with g_col3:
+        st.markdown("**Theta (Temps)**")
+        if total_theta < -0.01:
+            st.markdown(f":red[Négatif (Payeur)]")
+            st.caption(f"Erosion. Votre position perd {abs(total_theta):.2f}$ par jour si rien ne bouge. C'est le coût de votre 'assurance' ou de votre levier.")
+        elif total_theta > 0.01:
+            st.markdown(f":green[Positif (Encaisseur)]")
+            st.caption(f"Rente. Vous gagnez {total_theta:.2f}$ par jour si rien ne bouge. Le temps joue en votre faveur.")
+        else:
+            st.markdown("Neutre")
+            st.caption("Peu d'impact du temps.")
+
+    with g_col4:
+        st.markdown("**Vega (Volatilité)**")
+        if total_vega > 0.1:
+            st.markdown(f":green[Long Vega]")
+            st.caption("Achat de Vol. Vous gagnez de l'argent si la volatilité implicite monte (panique/incertitude), même si le prix ne bouge pas.")
+        elif total_vega < -0.1:
+            st.markdown(f":red[Short Vega]")
+            st.caption("Vente de Vol. Vous gagnez si la volatilité baisse (retour au calme). Danger si la panique arrive.")
+        else:
+            st.markdown("Neutre")
+            st.caption("Insensible aux changements de volatilité.")
 st.write("---")
 st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui)")
