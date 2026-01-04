@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 # Configuration de la page
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
+st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui)")
 
 # --- 1. MOTEUR MATHÉMATIQUE ---
 
@@ -507,6 +508,3 @@ with col_viz:
     with risk4:
         st.markdown("**Vega (Volatilité)**")
         st.info(txt_vega)
-
-st.write("---")
-st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui)")
