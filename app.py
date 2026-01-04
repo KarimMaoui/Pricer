@@ -1,4 +1,4 @@
-import numpy as np
+ import numpy as np
 from scipy.stats import norm
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -242,9 +242,9 @@ with col_params:
         st.header("3. Market Data")
         S = st.number_input("Spot Price (S)", value=100.0)
         K = st.number_input("Strike Central (K)", value=100.0)
-        T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
-        sigma = st.slider("Implied Volatility (sigma)", 0.05, 5.00, 0.30)
-        r = st.number_input("Risk Free Rate (r)", value=0.02)
+        T = st.slider("Maturity (Years)", 0.01, 2.0, 0.5, step=0.01)
+        sigma = st.slider("Implied Volatility (sigma)", 0.05, 2.00, 0.30)
+        r = st.number_input("Risk Free Rate (r)", value=0.04)
 
 # Calculs
 legs_config = get_strategy_legs(selected_strat, K, width_lower, width_upper, position)
