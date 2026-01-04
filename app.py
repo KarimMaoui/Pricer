@@ -7,8 +7,12 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
 
 # --- 1. MOTEUR MATHÉMATIQUE ---
+
 def black_scholes(S, K, T, r, sigma, q, option_type="Call"):
     if option_type == "Stock": return S 
+    # Protection mathématique contre T=0
+    if T <= 1e-5: T = 1e-5
+    
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     if option_type == "Call":
@@ -18,8 +22,11 @@ def black_scholes(S, K, T, r, sigma, q, option_type="Call"):
 
 def get_greeks(S, K, T, r, sigma, q, option_type="Call"):
     if option_type == "Stock": return 1.0, 0.0, 0.0, 0.0 
+    if T <= 1e-5: T = 1e-5
+
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
+    
     delta = np.exp(-q * T) * (norm.cdf(d1) if option_type == "Call" else -norm.cdf(-d1))
     gamma = np.exp(-q * T) * norm.pdf(d1) / (S * sigma * np.sqrt(T))
     vega = S * np.exp(-q * T) * np.sqrt(T) * norm.pdf(d1) / 100
@@ -40,6 +47,7 @@ def get_strategy_description(strategy, position):
         Contexte Marché :
         {contexte}
         """
+
     desc = {
         "Call": {"Long": format_desc("Achat Call (K).", "Levier directionnel.", "Momentum."), "Short": format_desc("Vente Call.", "Yield.", "Baissier.")},
         "Put": {"Long": format_desc("Achat Put (K).", "Protection/Spéculation.", "Correction."), "Short": format_desc("Vente Put.", "Target Buying.", "Neutre/Haussier.")},
@@ -62,6 +70,7 @@ def get_strategy_description(strategy, position):
     return desc.get(strategy, {}).get(position, "N/A")
 
 def get_greeks_profile(strategy, position):
+    # Dictionnaire explicatif technique pour chaque Grecque
     profiles = {
         "Call": {
             "Long": ("Positif. Delta = Probabilité approximative d'exercice.", "Positif. Accélération maximale ATM.", "Négatif. L'option est un actif périssable.", "Positif. Vega maximal ATM."),
@@ -238,8 +247,8 @@ with col_params:
         st.header("3. Market Data")
         S = st.number_input("Spot Price (S)", value=100.0)
         K = st.number_input("Strike Central (K)", value=100.0)
-        T = st.slider("Maturity (Years)", 0.01, 2.0, 0.5, step=0.01)
-        sigma = st.slider("Implied Volatility (sigma)", 0.05, 2.00, 0.30)
+        T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
+        sigma = st.slider("Implied Volatility (sigma)", 0.05, 5.00, 0.30)
         r = st.number_input("Risk Free Rate (r)", value=0.04)
 
 # Calculs
@@ -294,16 +303,13 @@ with col_viz:
     ax.axhline(0, color='gray', linewidth=1)
     ax.axvline(S, color='#FFD700', linestyle='--', label=f"Spot: {S}")
     
-    # --- AJOUT: MARQUAGE OTM / ITM / ATM POUR CALL ET PUT ---
+    # --- MARQUAGE OTM / ITM / ATM POUR CALL ET PUT SIMPLE ---
     if selected_strat in ["Call", "Put"]:
-        # On récupère le strike (c'est la première et seule jambe)
         strike_plot = real_legs_details[0][1]
         y_max = ax.get_ylim()[1]
         
-        # Etiquette ATM
         ax.text(strike_plot, y_max * 0.95, "ATM", color='#FFD700', ha='center', fontweight='bold')
         
-        # Etiquettes ITM / OTM selon le type
         if selected_strat == "Call":
             ax.text(strike_plot * 0.85, y_max * 0.85, "OTM", color='cyan', ha='center', fontsize=10, alpha=0.8)
             ax.text(strike_plot * 1.15, y_max * 0.85, "ITM", color='cyan', ha='center', fontsize=10, alpha=0.8)
@@ -311,11 +317,10 @@ with col_viz:
             ax.text(strike_plot * 0.85, y_max * 0.85, "ITM", color='cyan', ha='center', fontsize=10, alpha=0.8)
             ax.text(strike_plot * 1.15, y_max * 0.85, "OTM", color='cyan', ha='center', fontsize=10, alpha=0.8)
 
-    # Marquage standard des strikes pour les autres stratégies
+    # Marquage standard des strikes
     for t, k, q in real_legs_details:
         if k > 0:
             ax.axvline(k, color='gray', linestyle=':', alpha=0.5)
-            # Petit texte discret pour les autres produits
             if selected_strat not in ["Call", "Put"]:
                 ax.text(k, ax.get_ylim()[1]*0.95, f"{k:.0f}", color='white', ha='center', fontsize=7, alpha=0.7)
 
