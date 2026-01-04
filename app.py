@@ -1,4 +1,4 @@
- import numpy as np
+import numpy as np
 from scipy.stats import norm
 import streamlit as st
 import matplotlib.pyplot as plt
