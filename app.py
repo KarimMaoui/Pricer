@@ -32,7 +32,7 @@ def get_greeks(S, K, T, r, sigma, q, option_type="Call"):
     theta = (- (S * sigma * np.exp(-q * T) * norm.pdf(d1)) / (2 * np.sqrt(T))) / 365
     return delta, gamma, theta, vega
 
-# --- 2. LOGIQUE DES STRATÉGIES (VERSION EXPERT) ---
+# --- 2. LOGIQUE DES STRATÉGIES (FUSION EXPERT + NOUVEAUX PRODUITS) ---
 
 def get_strategy_description(strategy, position):
     def format_desc(structure, these, contexte):
@@ -227,23 +227,25 @@ def get_strategy_description(strategy, position):
     }
     return desc.get(strategy, {}).get(position, "N/A")
 
+# --- 3. ANALYSE DES RISQUES (VERSION TECHNIQUE) ---
+
 def get_greeks_profile(strategy, position):
     # Tuple : (Delta, Gamma, Theta, Vega)
     profiles = {
         "Call": {
-            "Long": ("Positif. Delta augmente avec le prix (Gamma).", "Positif. Accélération des gains.", "Négatif. L'option perd de la valeur chaque jour.", "Positif. Gain si la vol implicite monte."),
-            "Short": ("Négatif. Exposition inverse au marché.", "Négatif. Risque accru si le marché monte.", "Positif. Encaissement quotidien de la valeur temps.", "Négatif. Gain si la vol baisse.")
+            "Long": ("Positif. Delta = Probabilité approximative d'exercice.", "Positif. Accélération maximale ATM.", "Négatif. L'option est un actif périssable.", "Positif. Vega maximal ATM."),
+            "Short": ("Négatif. Vous êtes contre le marché.", "Négatif. Risque de 'Gap' contre vous.", "Positif. Vous encaissez la valeur temps.", "Négatif. La baisse de vol réduit votre coût de rachat.")
         },
         "Put": {
-            "Long": ("Négatif. Protection contre la baisse.", "Positif. Le Put devient plus sensible dans la baisse.", "Négatif. Coût de l'assurance.", "Positif. Protection contre la panique (Vol up)."),
-            "Short": ("Positif. Obligation d'achat.", "Négatif. Risque accéléré à la baisse.", "Positif. Rente quotidienne.", "Négatif. Vente d'assurance.")
+            "Long": ("Négatif. Delta tend vers -1 si ITM.", "Positif. L'option devient plus sensible si le marché baisse.", "Négatif. Coût de portage.", "Positif. Le Put prend de la valeur si la peur monte."),
+            "Short": ("Positif. Delta tend vers 0 si OTM.", "Négatif. Risque accéléré à la baisse.", "Positif. Rente quotidienne.", "Négatif. Vous vendez de l'assurance.")
         },
         "Covered Call": {
-            "Long": ("Positif (Atténué). Le Short Call réduit le Delta de l'action.", "Négatif. Le Short Call impose son profil Gamma.", "Positif. Source de revenu temporel.", "Négatif. Une hausse de vol renchérit le rachat du Call."),
+            "Long": ("Positif Réduit. Le Short Call K2 freine le Delta du stock (1.0).", "Négatif. Le Gamma du Short Call domine (le Stock a un Gamma de 0).", "Positif. Seule la jambe Short Call génère du Theta.", "Négatif. Si la Vol monte, le Call vendu devient plus cher à racheter."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Protective Put": {
-            "Long": ("Positif. Le Put réduit le Delta de l'action.", "Positif. Le Put ajoute de la convexité à la baisse.", "Négatif. Coût de l'assurance.", "Positif. Le portefeuille résiste mieux si la vol monte."),
+            "Long": ("Positif. Le Put (-Delta) réduit l'exposition du Stock.", "Positif. Le Put ajoute de la convexité à la baisse (Coussin).", "Négatif. Coût net de l'assurance.", "Positif. Votre protection vaut plus cher si la vol monte."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Collar": {
@@ -263,39 +265,39 @@ def get_greeks_profile(strategy, position):
             "Short": ("Négatif (Biais Baissier).", "Négatif Fort.", "Positif Fort.", "Négatif Fort.")
         },
         "Bull Call Spread": {
-            "Long": ("Positif. Net Long Delta.", "Positif à K1, Négatif à K2.", "Négatif à K1, Positif à K2.", "Variable. Long Vega K1 vs Short Vega K2."),
-            "Short": ("Négatif.", "Négatif à K1, Positif à K2.", "Positif à K1, Négatif à K2.", "Variable.")
+            "Long": ("Positif. Net Long Delta (Achat K1 > Vente K2).", "Flip de Gamma. Long Gamma en bas (K1), Short Gamma en haut (K2).", "Mixte. Vous payez du temps sur K1, vous en recevez sur K2.", "Mixte. Long Vega sur K1, Short sur K2. Sensible à la structure par terme."),
+            "Short": ("Négatif.", "Inverse du Long : Short Gamma bas, Long Gamma haut.", "Mixte.", "Mixte.")
         },
         "Bear Put Spread": {
-            "Long": ("Négatif.", "Positif à K2, Négatif à K1.", "Négatif à K2, Positif à K1.", "Variable."),
-            "Short": ("Positif.", "Négatif à K2, Positif à K1.", "Positif à K2, Négatif à K1.", "Variable.")
+            "Long": ("Négatif. Net Short Delta.", "Flip de Gamma. Short Gamma en bas (K1), Long Gamma en haut (K2).", "Mixte. Réception de temps sur K1, paiement sur K2.", "Mixte. Short Vega sur K1, Long sur K2."),
+            "Short": ("Positif.", "Inverse du Long.", "Mixte.", "Mixte.")
         },
         "Condor": {
             "Long": ("Neutre.", "Négatif (Short Gamma) sur le plateau central.", "Positif. Gain temps maximal sur le plateau.", "Négatif. Short Volatilité."),
             "Short": ("Neutre.", "Positif (Long Gamma) au centre.", "Négatif. Coût du temps.", "Positif. Long Volatilité.")
         },
         "Seagull": {
-            "Long": ("Positif. Levier à la hausse, risque Action à la baisse.", "Négatif (Globalement). Les bornes vendues (Put/Call) écrasent le Gamma.", "Positif. Le financement paie le Theta.", "Négatif. Vente de 2 pattes contre 1 achat."),
+            "Long": ("Positif. Levier à la hausse (Call Spread).", "Négatif (Globalement). Short Gamma sur les 2 bornes vendues (Put bas + Call haut).", "Positif. Les deux ventes financent largement le Theta du Call acheté.", "Négatif. Vente de 2 pattes (Put + Call) contre 1 achat. Net Short Vega."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Butterfly": {
-            "Long": ("Neutre.", "Négatif au centre (Vente 2x ATM).", "Positif Fort. Theta Max ATM.", "Négatif. Short Volatilité ATM."),
+            "Long": ("Neutre.", "Négatif au centre (Short Gamma massif ATM).", "Positif Fort. Theta Max ATM (Le temps est votre allié).", "Négatif. Short Volatilité ATM. Vous voulez que la Vol s'effondre."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Call Ratio Backspread": {
-            "Long": ("Variable (Souvent Positif).", "Positif Fort. Convexité nette (2 achats vs 1 vente).", "Variable.", "Positif. Vega Net Long (2 vs 1)."),
+            "Long": ("Variable (Souvent Positif).", "Positif Fort. La convexité des 2 Calls achetés domine la vente unique.", "Négatif. Vous avez 2 options qui perdent de la valeur temps.", "Positif. Quantité : 2x Vega OTM > 1x Vega ATM."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Put Ratio Backspread": {
-            "Long": ("Variable (Souvent Négatif).", "Positif Fort. Convexité nette à la baisse.", "Variable.", "Positif. Vega Net Long."),
+            "Long": ("Variable (Souvent Négatif).", "Positif Fort. Convexité nette à la baisse.", "Négatif.", "Positif. Quantité : 2x Vega OTM > 1x Vega ATM."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Risk Reversal": {
-            "Long": ("Positif. Cumul des Deltas.", "Neutre (Linéaire).", "Neutre.", "Neutre (Arbitrage de Skew)."),
-            "Short": ("Négatif.", "Neutre.", "Neutre.", "Neutre.")
+            "Long": ("Positif. Cumul des Deltas (Long Call + Short Put).", "Neutre (Linéaire). Les Gamma s'annulent ou sont loin.", "Neutre.", "Variable. Dépend du Skew (Vol Put vs Vol Call)."),
+            "Short": ("Négatif.", "Neutre.", "Neutre.", "Variable.")
         },
         "Synthetic Long": {
-            "Long": ("Positif (100%). Delta fixe de 1.0.", "Neutre.", "Neutre.", "Neutre."),
+            "Long": ("Positif (100%). Delta fixe de 1.0.", "Neutre (0). Gamma Call et Put s'annulent.", "Neutre (0).", "Neutre (0). Vega Call et Put s'annulent."),
             "Short": ("Négatif (100%).", "Neutre.", "Neutre.", "Neutre.")
         }
     }
@@ -304,34 +306,50 @@ def get_greeks_profile(strategy, position):
 def get_strategy_legs(strategy, K, width_lower, width_upper, position="Long"):
     pos_mult = 1 if position == "Long" else -1
     
-    # Simples
-    if strategy == "Call": return [("Call", 1.0, 1 * pos_mult)]
-    if strategy == "Put": return [("Put", 1.0, 1 * pos_mult)]
-    if strategy == "Straddle": return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, 1 * pos_mult)]
-    if strategy == "Synthetic Long": return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, -1 * pos_mult)]
-    if strategy == "Strap": return [("Call", 1.0, 2 * pos_mult), ("Put", 1.0, 1 * pos_mult)]
+    # 1. Stratégies Simples
+    if strategy == "Call":
+        return [("Call", 1.0, 1 * pos_mult)]
+    elif strategy == "Put":
+        return [("Put", 1.0, 1 * pos_mult)]
+    elif strategy == "Straddle":
+        return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, 1 * pos_mult)]
+    elif strategy == "Synthetic Long":
+        return [("Call", 1.0, 1 * pos_mult), ("Put", 1.0, -1 * pos_mult)]
+    elif strategy == "Strap":
+        return [("Call", 1.0, 2 * pos_mult), ("Put", 1.0, 1 * pos_mult)]
 
-    # Bornées Haute (Upper Spread)
-    if strategy == "Covered Call": return [("Stock", 0, 1), ("Call", 1.0 + width_upper, -1)] 
-    if strategy == "Bull Call Spread": return [("Call", 1.0, 1 * pos_mult), ("Call", 1.0 + width_upper, -1 * pos_mult)]
-    if strategy == "Call Ratio Backspread": return [("Call", 1.0, -1 * pos_mult), ("Call", 1.0 + width_upper, 2 * pos_mult)]
+    # 2. Stratégies bornées HAUTE (Call OTM)
+    elif strategy == "Covered Call":
+        return [("Stock", 0, 1), ("Call", 1.0 + width_upper, -1)] 
+    elif strategy == "Bull Call Spread":
+        return [("Call", 1.0, 1 * pos_mult), ("Call", 1.0 + width_upper, -1 * pos_mult)]
+    elif strategy == "Call Ratio Backspread":
+        return [("Call", 1.0, -1 * pos_mult), ("Call", 1.0 + width_upper, 2 * pos_mult)]
         
-    # Bornées Basse (Lower Spread)
-    if strategy == "Protective Put": return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1)] 
-    if strategy == "Bear Put Spread": return [("Put", 1.0, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
-    if strategy == "Put Ratio Backspread": return [("Put", 1.0, -1 * pos_mult), ("Put", 1.0 - width_lower, 2 * pos_mult)]
+    # 3. Stratégies bornées BASSE (Put OTM)
+    elif strategy == "Protective Put":
+        return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1)] 
+    elif strategy == "Bear Put Spread":
+        return [("Put", 1.0, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
+    elif strategy == "Put Ratio Backspread":
+        return [("Put", 1.0, -1 * pos_mult), ("Put", 1.0 - width_lower, 2 * pos_mult)]
         
-    # Double Bornes
-    if strategy == "Strangle": return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, 1 * pos_mult)]
-    if strategy == "Butterfly": return [("Call", 1.0 - width_lower, 1*pos_mult), ("Call", 1.0, -2*pos_mult), ("Call", 1.0 + width_upper, 1*pos_mult)]
-    if strategy == "Condor":
+    # 4. Stratégies DOUBLE bornes (Haut et Bas)
+    elif strategy == "Strangle":
+        return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, 1 * pos_mult)]
+    elif strategy == "Butterfly":
+        return [("Call", 1.0 - width_lower, 1*pos_mult), ("Call", 1.0, -2*pos_mult), ("Call", 1.0 + width_upper, 1*pos_mult)]
+    elif strategy == "Condor":
         body_gap = 0.02
         return [("Call", 1.0 - width_lower - body_gap, 1*pos_mult), ("Call", 1.0 - body_gap, -1*pos_mult), ("Call", 1.0 + body_gap, -1*pos_mult), ("Call", 1.0 + width_upper + body_gap, 1*pos_mult)]
     
-    # Complexes
-    if strategy == "Collar": return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1), ("Call", 1.0 + width_upper, -1)]
-    if strategy == "Risk Reversal": return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
-    if strategy == "Seagull": return [("Call", 1.0, 1), ("Call", 1.0 + width_upper, -1), ("Put", 1.0 - width_lower, -1)]
+    # 5. Stratégies Complexes
+    elif strategy == "Collar":
+        return [("Stock", 0, 1), ("Put", 1.0 - width_lower, 1), ("Call", 1.0 + width_upper, -1)]
+    elif strategy == "Risk Reversal":
+        return [("Call", 1.0 + width_upper, 1 * pos_mult), ("Put", 1.0 - width_lower, -1 * pos_mult)]
+    elif strategy == "Seagull":
+        return [("Call", 1.0, 1), ("Call", 1.0 + width_upper, -1), ("Put", 1.0 - width_lower, -1)]
 
     return []
 
