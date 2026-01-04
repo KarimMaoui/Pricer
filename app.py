@@ -408,7 +408,7 @@ with col_params:
         S = st.number_input("Spot Price (S)", value=100.0)
         K = st.number_input("Strike Central (K)", value=100.0)
         T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
-        sigma = st.slider("Implied Volatility (sigma)", 0.05, 5.00, 0.30)
+        sigma = st.slider("Implied Volatility (sigma)", 0.01, 1.50, 0.30)
         r = st.number_input("Risk Free Rate (r)", value=0.04)
 
 # Calculs
