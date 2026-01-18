@@ -437,16 +437,28 @@ q_model = r if "Black-76" in model_choice else 0.0
 
 for leg_type, strike_mult, qty in legs_config:
     leg_k = K * strike_mult if leg_type != "Stock" else 0
-    # --- MODIFICATION: On passe q_model au lieu de 0 ---
-    p = black_scholes(S, leg_k, T, r, sigma, q_model, leg_type)
-    d, g, t, v = get_greeks(S, leg_k, T, r, sigma, q_model, leg_type)
+    
+    # --- AJOUT: LOGIQUE DU SKEW ---
+    # Si Skew = -10% (-0.10), les Puts ont +5% de vol, les Calls ont -5% de vol.
+    leg_sigma = sigma
+    if enable_skew and leg_type != "Stock":
+        if leg_type == "Call":
+            leg_sigma = sigma + (skew_vol / 2)
+        elif leg_type == "Put":
+            leg_sigma = sigma - (skew_vol / 2)
+    
+    # Pricing (On utilise leg_sigma au lieu de sigma)
+    p = black_scholes(S, leg_k, T, r, leg_sigma, q_model, leg_type)
+    d, g, t, v = get_greeks(S, leg_k, T, r, leg_sigma, q_model, leg_type)
     
     total_price += p * qty
     total_delta += d * qty
     total_gamma += g * qty
     total_theta += t * qty
     total_vega += v * qty
-    real_legs_details.append((leg_type, leg_k, qty))
+    
+    # On stocke la volatilité utilisée pour l'afficher plus tard si besoin
+    real_legs_details.append((leg_type, leg_k, qty, leg_sigma))
 
 with col_viz:
     with st.expander("Fiche Produit & Analyse", expanded=True):
