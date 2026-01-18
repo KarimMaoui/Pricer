@@ -27,10 +27,34 @@ def get_greeks(S, K, T, r, sigma, q, option_type="Call"):
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     
-    delta = np.exp(-q * T) * (norm.cdf(d1) if option_type == "Call" else -norm.cdf(-d1))
-    gamma = np.exp(-q * T) * norm.pdf(d1) / (S * sigma * np.sqrt(T))
-    vega = S * np.exp(-q * T) * np.sqrt(T) * norm.pdf(d1) / 100
-    theta = (- (S * sigma * np.exp(-q * T) * norm.pdf(d1)) / (2 * np.sqrt(T))) / 365
+    # 1. DELTA
+    if option_type == "Call":
+        delta = np.exp(-q * T) * norm.cdf(d1)
+    else:
+        delta = -np.exp(-q * T) * norm.cdf(-d1)
+
+    # 2. GAMMA (Identique Call/Put)
+    gamma = (np.exp(-q * T) * norm.pdf(d1)) / (S * sigma * np.sqrt(T))
+
+    # 3. VEGA (Identique Call/Put, divisé par 100 pour avoir l'impact de 1% de vol)
+    vega = (S * np.exp(-q * T) * np.sqrt(T) * norm.pdf(d1)) / 100
+
+    # 4. THETA (Formule Complète Généralisée)
+    # Terme 1 : Érosion commune due à la volatilité
+    term1 = -(S * sigma * np.exp(-q * T) * norm.pdf(d1)) / (2 * np.sqrt(T))
+    
+    if option_type == "Call":
+        term2 = - r * K * np.exp(-r * T) * norm.cdf(d2)
+        term3 = + q * S * np.exp(-q * T) * norm.cdf(d1)
+    else: # Put
+        term2 = + r * K * np.exp(-r * T) * norm.cdf(-d2)
+        term3 = - q * S * np.exp(-q * T) * norm.cdf(-d1)
+    
+    theta_annual = term1 + term2 + term3
+    
+    # On divise par 365 pour avoir le Theta "Par Jour" (Standard de marché)
+    theta = theta_annual / 365
+
     return delta, gamma, theta, vega
 
 # --- 2. LOGIQUE DES STRATÉGIES (FUSION EXPERT + NOUVEAUX PRODUITS) ---
