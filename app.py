@@ -416,7 +416,15 @@ with col_params:
         
         K = st.number_input("Strike Central (K)", value=100.0)
         T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
-        sigma = st.slider("Implied Volatility (sigma)", 0.01, 1.50, 0.30, step=0.01)
+        sigma = st.slider("Implied Volatility (ATM)", 0.01, 1.50, 0.30, step=0.01)
+        
+        # --- AJOUT: GESTION DU SKEW ---
+        enable_skew = st.checkbox("Activer Volatility Skew")
+        skew_vol = 0.0
+        if enable_skew:
+            st.caption("Skew positif = Calls plus chers (Agri). Skew négatif = Puts plus chers (Equity/Oil).")
+            skew_vol = st.slider("Skew (Vol Call - Vol Put)", -0.20, 0.20, 0.00, step=0.01)
+            
         r = st.number_input("Risk Free Rate (r)", value=0.04)
 
 # Calculs
