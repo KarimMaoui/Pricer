@@ -478,7 +478,7 @@ with col_viz:
     S_range = np.linspace(S * 0.5, S * 1.8, 300)
     pnl_maturity = np.zeros_like(S_range) - total_price 
     
-    for leg_type, leg_k, qty in real_legs_details:
+    for leg_type, leg_k, qty, _ in real_legs_details:
         if leg_type == "Call": pnl_maturity += np.maximum(S_range - leg_k, 0) * qty
         elif leg_type == "Put": pnl_maturity += np.maximum(leg_k - S_range, 0) * qty
         elif leg_type == "Stock": pnl_maturity += S_range * qty
@@ -501,7 +501,7 @@ with col_viz:
             ax.text(strike_plot * 0.85, y_max * 0.85, "ITM", color='cyan', ha='center', fontsize=10, alpha=0.8)
             ax.text(strike_plot * 1.15, y_max * 0.85, "OTM", color='cyan', ha='center', fontsize=10, alpha=0.8)
 
-    for t, k, q in real_legs_details:
+    for t, k, q, _ in real_legs_details: 
         if k > 0:
             ax.axvline(k, color='gray', linestyle=':', alpha=0.5)
             if selected_strat not in ["Call", "Put"]:
@@ -519,7 +519,8 @@ with col_viz:
     st.pyplot(fig)
 
     st.caption("Détail de la structuration")
-    legs_data = [{"Type": t, "Strike": f"{k:.2f}" if k > 0 else "Mkt", "Qté": q, "Side": "Long" if q > 0 else "Short"} for t, k, q in real_legs_details]
+    # On ajoute la colonne "Vol"
+    legs_data = [{"Type": t, "Strike": f"{k:.2f}" if k > 0 else "Mkt", "Qté": q, "Side": "Long" if q > 0 else "Short", "Vol Utilise": f"{vol:.1%}"} for t, k, q, vol in real_legs_details]
     st.dataframe(legs_data, use_container_width=True)
 
     st.divider()
