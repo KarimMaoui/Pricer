@@ -462,14 +462,16 @@ legs_config = get_strategy_legs(selected_strat, K, width_lower, width_upper, pos
 total_price, total_delta, total_gamma, total_theta, total_vega = 0, 0, 0, 0, 0
 real_legs_details = []
 
-# --- AJOUT: Variable q dynamique (0 pour Equity, r pour Commodity) ---
-q_model = r if "Black-76" in model_choice else 0.0
+# --- DÉFINITION DU DIVIDENDE (q) ---
+if "Black-76" in model_choice:
+    q_model = r          # En Commo (Futures), q = r (Cost of Carry)
+else:
+    q_model = div_yield  # En Equity, q = Dividende (0 par défaut)
 
 for leg_type, strike_mult, qty in legs_config:
     leg_k = K * strike_mult if leg_type != "Stock" else 0
     
-    # --- AJOUT: LOGIQUE DU SKEW ---
-    # Si Skew = -10% (-0.10), les Puts ont +5% de vol, les Calls ont -5% de vol.
+    # --- SKEW LOGIC ---
     leg_sigma = sigma
     if enable_skew and leg_type != "Stock":
         if leg_type == "Call":
@@ -477,7 +479,7 @@ for leg_type, strike_mult, qty in legs_config:
         elif leg_type == "Put":
             leg_sigma = sigma - (skew_vol / 2)
     
-    # Pricing (On utilise leg_sigma au lieu de sigma)
+    # Pricing (Le moteur reçoit le bon q_model)
     p = black_scholes(S, leg_k, T, r, leg_sigma, q_model, leg_type)
     d, g, t, v = get_greeks(S, leg_k, T, r, leg_sigma, q_model, leg_type)
     
@@ -487,7 +489,7 @@ for leg_type, strike_mult, qty in legs_config:
     total_theta += t * qty
     total_vega += v * qty
     
-    # On stocke la volatilité utilisée pour l'afficher plus tard si besoin
+    # On stocke les 4 valeurs (avec le _ pour ignorer la vol dans les boucles d'affichage graphiques)
     real_legs_details.append((leg_type, leg_k, qty, leg_sigma))
 
 with col_viz:
