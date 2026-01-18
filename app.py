@@ -75,178 +75,178 @@ def get_strategy_description(strategy, position):
     desc = {
         "Call": {
             "Long": format_desc(
-                "Achat d'un Call de strike K.",
-                "Stratégie de levier directionnel pur. L'investisseur paie une prime pour capter 100% de la hausse au-delà du point mort (Strike + Prime), avec un risque strictement limité au capital investi.",
-                "Marché haussier avec forte conviction (Momentum). Idéal quand la volatilité implicite est faible (Call pas cher)."
+                "Purchase of a Call option at strike K.",
+                "Pure directional leverage strategy. The investor pays a premium to capture 100% of the upside beyond the breakeven point (Strike + Premium), with risk strictly limited to the invested capital.",
+                "Bullish market with strong conviction (Momentum). Ideal when implied volatility is low (cheap Call)."
             ),
             "Short": format_desc(
-                "Vente à découvert d'un Call de strike K (Naked Call).",
-                "Stratégie de rendement (Yield). Le gain est limité à la prime reçue. Le risque est théoriquement illimité si le sous-jacent explose à la hausse. Position Short Vega (on vend de la volatilité).",
-                "Marché baissier ou butée sur une résistance technique majeure. Anticipation d'une baisse de la volatilité."
+                "Naked sale of a Call at strike K (Naked Call).",
+                "Yield strategy. Profit is limited to the received premium. Risk is theoretically unlimited if the underlying explodes upwards. Short Vega position (selling volatility).",
+                "Bearish market or hitting a major technical resistance. Anticipation of volatility drop."
             )
         },
         "Put": {
             "Long": format_desc(
-                "Achat d'un Put de strike K.",
-                "Protection (Floor) ou spéculation baissière. L'investisseur fixe un prix de vente garanti à K, s'immunisant contre toute baisse du sous-jacent sous ce niveau.",
-                "Couverture de portefeuille (Hedging) ou anticipation d'une correction violente."
+                "Purchase of a Put option at strike K.",
+                "Protection (Floor) or bearish speculation. The investor sets a guaranteed sell price at K, immunizing against any drop in the underlying below this level.",
+                "Portfolio hedging (Hedging) or anticipation of a violent correction."
             ),
             "Short": format_desc(
-                "Vente à découvert d'un Put de strike K (Naked Put).",
-                "Stratégie d'accumulation (Target Buying). L'investisseur s'engage à acheter le titre au cours K. Il encaisse la prime en attendant que le marché baisse vers son niveau d'achat cible.",
-                "Marché neutre à légèrement haussier. Volonté d'acquérir le sous-jacent avec un rabais (Strike - Prime reçue)."
+                "Naked sale of a Put at strike K (Naked Put).",
+                "Accumulation strategy (Target Buying). The investor commits to buying the stock at price K. Collects the premium while waiting for the market to drop to their target buy level.",
+                "Neutral to slightly bullish market. Willingness to acquire the underlying at a discount (Strike - Received Premium)."
             )
         },
         "Covered Call": {
             "Long": format_desc(
-                "Position Longue sur le Sous-jacent + Vente d'un Call OTM (Strike K).",
-                "Amélioration du rendement (Yield Enhancement). La prime encaissée agit comme un dividende synthétique et amortit une légère baisse. En contrepartie, l'investisseur renonce à toute performance au-delà de K.",
-                "Marché neutre ou haussier lent. Idéal pour monétiser une position existante quand la volatilité est élevée."
+                "Long position on the Underlying + Sale of an OTM Call (Strike K).",
+                "Yield Enhancement. The collected premium acts as a synthetic dividend and cushions a slight drop. In exchange, the investor gives up any performance above K.",
+                "Neutral or slow bullish market. Ideal for monetizing an existing position when volatility is high."
             ),
             "Short": "N/A"
         },
         "Protective Put": {
             "Long": format_desc(
-                "Position Longue sur le Sous-jacent + Achat d'un Put OTM (Strike K).",
-                "Assurance totale du capital (Synthetic Call). Le profil de gain est illimité à la hausse, mais la perte maximale est verrouillée au niveau du Strike K (moins le coût de l'assurance).",
-                "Incertitude à court terme (Earnings, Élections) sur une position stratégique qu'on ne souhaite pas solder."
+                "Long position on the Underlying + Purchase of an OTM Put (Strike K).",
+                "Total capital insurance (Synthetic Call). The profit profile is unlimited to the upside, but maximum loss is locked at Strike K (minus the cost of insurance).",
+                "Short-term uncertainty (Earnings, Elections) on a strategic position one does not wish to sell."
             ),
             "Short": "N/A"
         },
         "Collar": {
             "Long": format_desc(
-                "Long Sous-jacent + Achat Put K1 (Protection) + Vente Call K2 (Financement).",
-                "Protection à coût nul (Zero Cost Collar). La vente du potentiel de hausse (au-dessus de K2) finance intégralement l'achat de la protection (en-dessous de K1). Le P&L est tunellisé entre K1 et K2.",
-                "Gestion de fortune prudente. Volonté de se couvrir contre un krach sans débourser de trésorerie."
+                "Long Underlying + Buy Put K1 (Protection) + Sell Call K2 (Financing).",
+                "Zero Cost Collar. Selling the upside potential (above K2) fully finances the purchase of protection (below K1). P&L is tunneled between K1 and K2.",
+                "Prudent wealth management. Desire to hedge against a crash without cash outlay."
             ),
             "Short": "N/A"
         },
         "Risk Reversal": {
             "Long": format_desc(
-                "Achat d'un Call OTM (K2) + Vente d'un Put OTM (K1).",
-                "Position synthétique Longue financée. Réplique le comportement de l'action avec un effet de levier et sans capital initial (si Prime Call = Prime Put). On joue le 'Skew' de volatilité.",
-                "Anticipation d'un retournement haussier (Reversal) ou arbitrage de volatilité (Puts chers, Calls donnés)."
+                "Purchase of an OTM Call (K2) + Sale of an OTM Put (K1).",
+                "Funded synthetic Long position. Replicates stock behavior with leverage and no initial capital (if Call Premium = Put Premium). Plays the volatility 'Skew'.",
+                "Anticipation of a bullish reversal or volatility arbitrage (Expensive Puts, Cheap Calls)."
             ),
             "Short": format_desc(
-                "Vente d'un Call OTM (K2) + Achat d'un Put OTM (K1).",
-                "Position synthétique Courte financée. Permet de parier sur la baisse en finançant l'achat du Put par la vente du Call.",
-                "Anticipation d'un retournement baissier."
+                "Sale of an OTM Call (K2) + Purchase of an OTM Put (K1).",
+                "Funded synthetic Short position. Allows betting on the downside by financing the Put purchase with the Call sale.",
+                "Anticipation of a bearish reversal."
             )
         },
         "Straddle": {
             "Long": format_desc(
-                "Achat Call ATM + Achat Put ATM (Même Strike K).",
-                "Stratégie de Volatilité Pure (Delta Neutre). L'investisseur gagne si l'amplitude du mouvement (hausse ou baisse) dépasse la prime totale payée. Aucune opinion directionnelle requise.",
-                "Avant un événement binaire majeur (Earnings, CPI, Décision FDA) susceptible de provoquer un Gap de prix."
+                "Buy ATM Call + Buy ATM Put (Same Strike K).",
+                "Pure Volatility Strategy (Delta Neutral). Investor wins if the movement amplitude (up or down) exceeds the total premium paid. No directional opinion required.",
+                "Before a major binary event (Earnings, CPI, FDA Decision) likely to cause a price Gap."
             ),
             "Short": format_desc(
-                "Vente Call ATM + Vente Put ATM (Même Strike K).",
-                "Vente de Volatilité agressive. L'investisseur parie que le cours restera collé au Strike K. Le gain maximal est la prime, mais le risque est illimité des deux côtés.",
-                "Marché en range strict. Pari sur une baisse de la volatilité implicite (Volatility Crush) après un événement."
+                "Sell ATM Call + Sell ATM Put (Same Strike K).",
+                "Aggressive Volatility Selling. Investor bets the price will remain stuck at Strike K. Max gain is the premium, but risk is unlimited on both sides.",
+                "Strict range market. Bet on implied volatility drop (Volatility Crush) after an event."
             )
         },
         "Strangle": {
             "Long": format_desc(
-                "Achat Put OTM (K1) + Achat Call OTM (K2).",
-                "Volatilité à coût réduit. Moins cher que le Straddle, mais nécessite un mouvement beaucoup plus violent pour atteindre les points morts (Breakevens).",
-                "Pari sur un événement extrême (Cygne Noir) ou une rupture technique majeure, avec un budget prime limité."
+                "Buy OTM Put (K1) + Buy OTM Call (K2).",
+                "Low-Cost Volatility. Cheaper than the Straddle, but requires a much more violent movement to reach breakevens.",
+                "Bet on an extreme event (Black Swan) or major technical break, with a limited premium budget."
             ),
             "Short": format_desc(
-                "Vente Put OTM (K1) + Vente Call OTM (K2).",
-                "Vente de Volatilité avec marge de sécurité. Profitable tant que le cours reste dans le tunnel [K1, K2]. Probabilité de gain élevée (High Probability Trading).",
-                "Marché latéral (Sideways) sans catalyseur proche."
+                "Sell OTM Put (K1) + Sell OTM Call (K2).",
+                "Volatility Selling with safety margin. Profitable as long as the price stays within the tunnel [K1, K2]. High Probability Trading.",
+                "Sideways market without nearby catalyst."
             )
         },
         "Strap": {
             "Long": format_desc(
-                "Achat de 2 Calls ATM + Achat d'1 Put ATM.",
-                "Volatilité avec Biais Haussier. C'est un Straddle modifié qui double la mise à la hausse. Si le marché explose à la hausse, les gains sont démultipliés (Delta positif net).",
-                "Volatilité attendue mais conviction haussière dominante."
+                "Buy 2 ATM Calls + Buy 1 ATM Put.",
+                "Volatility with Bullish Bias. Modified Straddle that doubles down on the upside. If market explodes upwards, gains are multiplied (Net Positive Delta).",
+                "Volatility expected but dominant bullish conviction."
             ),
             "Short": format_desc(
-                "Vente de 2 Calls ATM + Vente d'1 Put ATM.",
-                "Vente de Volatilité avec Biais Baissier. Très risqué : les pertes s'accélèrent deux fois plus vite si le marché monte.",
-                "Marché calme ou baissier lent."
+                "Sell 2 ATM Calls + Sell 1 ATM Put.",
+                "Volatility Selling with Bearish Bias. Very risky: losses accelerate twice as fast if the market rises.",
+                "Calm or slow bearish market."
             )
         },
         "Condor": {
             "Long": format_desc(
-                "Achat Call K1, Vente Call K2, Vente Call K3, Achat Call K4.",
-                "Arbitrage de Volatilité (Iron Condor structurel). L'objectif est de capturer la valeur temps (Theta) maximale. Le profit est maximal si le cours termine entre K2 et K3.",
-                "Marché parfaitement calme (Indice en range)."
+                "Buy Call K1, Sell Call K2, Sell Call K3, Buy Call K4.",
+                "Volatility Arbitrage (Structural Iron Condor). Goal is to capture maximum time value (Theta). Profit is maximal if price ends between K2 and K3.",
+                "Perfectly calm market (Index in range)."
             ),
             "Short": format_desc(
-                "Vente Call K1, Achat Call K2, Achat Call K3, Vente Call K4.",
-                "Stratégie de Breakout. On parie que le cours va sortir violemment de la zone [K2, K3], peu importe la direction.",
-                "Sortie de congestion imminente."
+                "Sell Call K1, Buy Call K2, Buy Call K3, Sell Call K4.",
+                "Breakout Strategy. Betting the price will violently exit the [K2, K3] zone, regardless of direction.",
+                "Imminent congestion exit."
             )
         },
         "Bull Call Spread": {
             "Long": format_desc(
-                "Achat Call K1 + Vente Call K2.",
-                "Exposition haussière optimisée. La vente de K2 réduit le coût du K1, abaissant ainsi le point mort. En échange, le profit est capé à K2. Ratio Risque/Rendement souvent supérieur au Call sec.",
-                "Hausse modérée anticipée vers une cible précise (K2)."
+                "Buy Call K1 + Sell Call K2.",
+                "Optimized bullish exposure. Selling K2 reduces K1 cost, lowering the breakeven. In exchange, profit is capped at K2. Risk/Reward ratio often superior to naked Call.",
+                "Moderate rise anticipated towards a specific target (K2)."
             ),
             "Short": format_desc(
-                "Vente Call K1 + Achat Call K2 (Credit Spread).",
-                "Stratégie de Crédit baissière. On parie que le marché ne dépassera pas K1. Le gain est limité au crédit reçu initialement.",
-                "Tendance baissière ou résistance technique forte à K1."
+                "Sell Call K1 + Buy Call K2 (Credit Spread).",
+                "Bearish Credit Strategy. Betting the market won't exceed K1. Gain limited to initial credit received.",
+                "Bearish trend or strong technical resistance at K1."
             )
         },
         "Bear Put Spread": {
             "Long": format_desc(
-                "Achat Put K2 + Vente Put K1.",
-                "Exposition baissière optimisée. La vente de K1 réduit le coût du Put K2. Le profit est maximal si le cours atteint K1.",
-                "Baisse modérée anticipée vers un support précis (K1)."
+                "Buy Put K2 + Sell Put K1.",
+                "Optimized bearish exposure. Selling K1 reduces K2 Put cost. Profit is maximal if price reaches K1.",
+                "Moderate drop anticipated towards a specific support (K1)."
             ),
             "Short": format_desc(
-                "Vente Put K2 + Achat Put K1 (Credit Spread).",
-                "Stratégie de Crédit haussière (Bull Put Spread). On parie que le marché ne passera pas sous K2. On encaisse la prime.",
-                "Tendance haussière ou support technique solide à K2."
+                "Sell Put K2 + Buy Put K1 (Credit Spread).",
+                "Bullish Credit Strategy (Bull Put Spread). Betting the market won't drop below K2. Collecting the premium.",
+                "Bullish trend or solid technical support at K2."
             )
         },
         "Seagull": {
             "Long": format_desc(
-                "Bull Call Spread (Achat K2 / Vente K3) + Vente Put K1.",
-                "Construction structurée. La hausse est financée par la vente du Put K1 et du Call K3. Souvent structuré à 'Zéro Prime'. Le risque est reporté à la baisse sous K1.",
-                "Marché haussier, avec une volonté d'acheter le sous-jacent en cas de repli majeur au niveau K1 (Target Buying)."
+                "Bull Call Spread (Buy K2 / Sell K3) + Sell Put K1.",
+                "Structured construction. Upside is financed by selling Put K1 and Call K3. Often structured at 'Zero Cost'. Risk is shifted to the downside below K1.",
+                "Bullish market, with willingness to buy the underlying in case of major pullback to level K1 (Target Buying)."
             ),
             "Short": "N/A"
         },
         "Butterfly": {
             "Long": format_desc(
-                "Achat Call K1 + Vente 2 Calls K2 + Achat Call K3.",
-                "Sniper de Volatilité (Short Gamma). Profit maximal très localisé sur le strike central K2. Risque faible, Reward élevé, Probabilité faible.",
-                "Marché anémique, expiration proche (Pin Risk)."
+                "Buy Call K1 + Sell 2 Calls K2 + Buy Call K3.",
+                "Volatility Sniper (Short Gamma). Max profit highly localized on central strike K2. Low Risk, High Reward, Low Probability.",
+                "Anemic market, approaching expiration (Pin Risk)."
             ),
             "Short": "N/A"
         },
         "Call Ratio Backspread": {
             "Long": format_desc(
-                "Vente 1 Call ATM (K1) + Achat 2 Calls OTM (K2).",
-                "Stratégie de Volatilité Convexe. La vente du Call K1 finance l'achat multiple de K2. Si le marché explose, le gain est illimité (Delta devient très positif). Risque de perte uniquement si le marché stagne à K2.",
-                "Explosion haussière attendue (Matières Premières, Tech). On veut 'Gamma Scalper' la hausse."
+                "Sell 1 ATM Call (K1) + Buy 2 OTM Calls (K2).",
+                "Convex Volatility Strategy. Selling Call K1 finances multiple purchases of K2. If market explodes, gain is unlimited (Delta becomes very positive). Loss risk only if market stagnates at K2.",
+                "Bullish explosion expected (Commodities, Tech). Aiming to 'Gamma Scalp' the rise."
             ),
             "Short": "N/A"
         },
         "Put Ratio Backspread": {
             "Long": format_desc(
-                "Vente 1 Put ATM (K2) + Achat 2 Puts OTM (K1).",
-                "Protection Anti-Krach. Structure gratuite ou à crédit qui génère un profit massif en cas d'effondrement du marché. Risque de perte limité à la zone entre K1 et K2.",
-                "Couverture de portefeuille contre un risque systémique (Black Swan)."
+                "Sell 1 ATM Put (K2) + Buy 2 OTM Puts (K1).",
+                "Anti-Crash Protection. Free or credit structure generating massive profit if market collapses. Loss risk limited to zone between K1 and K2.",
+                "Portfolio hedging against systemic risk (Black Swan)."
             ),
             "Short": "N/A"
         },
         "Synthetic Long": {
             "Long": format_desc(
-                "Achat Call ATM + Vente Put ATM.",
-                "Réplication Delta One. Cette combinaison offre exactement le même profil de gain/perte que la détention de l'action, mais avec un capital immobilisé quasi-nul (hors marge).",
-                "Volonté d'exposition linéaire sans trésorerie disponible."
+                "Buy ATM Call + Sell ATM Put.",
+                "Delta One Replication. This combination offers exactly the same gain/loss profile as holding the stock, but with near-zero tied capital (excluding margin).",
+                "Desire for linear exposure without available cash."
             ),
             "Short": format_desc(
-                "Vente Call ATM + Achat Put ATM.",
-                "Position Courte Synthétique. Permet de shorter le marché sans emprunter les titres (Hard-to-borrow stocks).",
-                "Conviction baissière pure."
+                "Sell ATM Call + Buy ATM Put.",
+                "Synthetic Short Position. Allows shorting the market without borrowing shares (Hard-to-borrow stocks).",
+                "Pure bearish conviction."
             )
         }
     }
