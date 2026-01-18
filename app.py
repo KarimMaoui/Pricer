@@ -250,7 +250,7 @@ def get_greeks_profile(strategy, position):
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Collar": {
-            "Long": ("Positif. Limité à la hausse (Call) et à la baisse (Put).", "Variable. Long Gamma sur le Put (Bas), Short Gamma sur le Call (Haut).", "Variable. Dépend du différentiel de Theta entre les deux options.", "Négatif (Généralement). Le Skew rend souvent le Call vendu plus sensible."),
+            "Long": ("Positif. Limité à la hausse (Call) et à la baisse (Put).", "Variable. Long Gamma sur le Put (Bas), Short Gamma sur le Call (Haut).", "Mixte. Dépend des primes. Généralement Theta Positif proche du Call vendu.", "Négatif (Généralement). Le Skew (Vol Put > Vol Call) rend la vente du Call moins sensible que l'achat du Put."),
             "Short": ("N/A", "N/A", "N/A", "N/A")
         },
         "Straddle": {
@@ -409,7 +409,7 @@ with col_params:
         S = st.number_input("Spot Price (S)", value=100.0)
         K = st.number_input("Strike Central (K)", value=100.0)
         T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
-        sigma = st.slider("Implied Volatility (sigma)", 0.01, 1.50, 0.30)
+        sigma = st.slider("Implied Volatility (sigma)", 0.01, 1.50, 0.30, step=0.01)
         r = st.number_input("Risk Free Rate (r)", value=0.04)
 
 # Calculs
@@ -508,3 +508,6 @@ with col_viz:
     with risk4:
         st.markdown("**Vega (Volatilité)**")
         st.info(txt_vega)
+
+st.write("---")
+st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui)")
