@@ -431,10 +431,10 @@ with col_params:
         st.divider()
         st.header("3. Market Data")
         
-        # --- AJOUT: SÉLECTEUR DE MODÈLE (Equity vs Commodity) ---
+        # SÉLECTEUR DE MODÈLE
         model_choice = st.radio("Modèle / Model", ["Equity (Black-Scholes)", "Commodity (Black-76)"], horizontal=True)
         
-        # --- AJOUT: Label dynamique (Spot vs Future) ---
+        # Label dynamique
         label_S = "Future Price (F)" if "Black-76" in model_choice else "Spot Price (S)"
         S = st.number_input(label_S, value=100.0)
         
@@ -442,15 +442,21 @@ with col_params:
         T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
         sigma = st.slider("Implied Volatility (ATM)", 0.01, 1.50, 0.30, step=0.01)
         
-        # --- AJOUT: GESTION DU SKEW ---
+        # GESTION DU SKEW
         enable_skew = st.checkbox("Activer Volatility Skew")
         skew_vol = 0.0
         if enable_skew:
-            st.caption("Skew positif = Calls plus chers (Agri). Skew négatif = Puts plus chers (Equity/Oil).")
+            st.caption("Skew positif = Calls plus chers. Skew négatif = Puts plus chers.")
             skew_vol = st.slider("Skew (Vol Call - Vol Put)", -0.20, 0.20, 0.00, step=0.01)
             
-        r = st.number_input("Risk Free Rate (r)", value=0.04)
+        r = st.number_input("Risk Free Rate (r)", value=0.03)
 
+        # --- AJOUT: GESTION DES DIVIDENDES (Seulement pour Equity) ---
+        div_yield = 0.0
+        if "Equity" in model_choice:
+            enable_div = st.checkbox("Inclure Dividendes (Yield)")
+            if enable_div:
+                div_yield = st.number_input("Dividend Yield (q)", value=0.02, step=0.001, format="%.3f")
 # Calculs
 legs_config = get_strategy_legs(selected_strat, K, width_lower, width_upper, position)
 total_price, total_delta, total_gamma, total_theta, total_vega = 0, 0, 0, 0, 0
