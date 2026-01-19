@@ -444,8 +444,8 @@ with col_params:
         if use_live_data:
             col_ticker, col_btn = st.columns([2, 1])
             with col_ticker:
-                # Exemples de Tickers : AAPL (Apple), CL=F (Crude Oil), GC=F (Gold), ZC=F (Corn)
-                default_ticker = "AAPL" if "Equity" in model_choice else "CL=F"
+                
+                default_ticker = "CL=F" if "Equity" in model_choice else "CL=F"
                 ticker_input = st.text_input("Ticker Symbol", value=default_ticker)
             with col_btn:
                 st.write("") # Spacer pour aligner le bouton
