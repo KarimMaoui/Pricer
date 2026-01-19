@@ -574,5 +574,3 @@ with col_viz:
         st.markdown("**Vega (Volatilité)**")
         st.info(txt_vega)
 
-st.write("---")
-st.markdown("Coded by [Karim MAOUI](https://github.com/KarimMaoui)")
