@@ -443,7 +443,7 @@ with col_params:
         sigma = st.slider("Implied Volatility (ATM)", 0.01, 1.50, 0.30, step=0.01)
         
         # GESTION DU SKEW
-        enable_skew = st.checkbox("Activer Volatility Skew")
+        enable_skew = st.checkbox("Enable Volatility Skew")
         skew_vol = 0.0
         if enable_skew:
             st.caption("Skew positif = Calls plus chers. Skew négatif = Puts plus chers.")
