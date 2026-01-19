@@ -454,7 +454,7 @@ with col_params:
         # --- AJOUT: GESTION DES DIVIDENDES (Seulement pour Equity) ---
         div_yield = 0.0
         if "Equity" in model_choice:
-            enable_div = st.checkbox("Inclure Dividendes (Yield)")
+            enable_div = st.checkbox("Include Dividends")
             if enable_div:
                 div_yield = st.number_input("Dividend Yield (q)", value=0.02, step=0.001, format="%.3f")
 # Calculs
