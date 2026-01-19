@@ -434,7 +434,7 @@ with col_params:
         
 
         # SÉLECTEUR DE MODÈLE
-        model_choice = st.radio("Modèle / Model", ["Equity (Black-Scholes)", "Commodity (Black-76)"], horizontal=True)
+        model_choice = st.radio("Modèle / Model", ["Equity (Black-Scholes)", "Commodity (Black-76)"], horizontal=True, index=1)
 
         # --- AJOUT: LIVE DATA SECTION ---
         use_live_data = st.toggle("Use Market Spot Price from Yahoo", value=True)
