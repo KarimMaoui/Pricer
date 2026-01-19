@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import norm
 import streamlit as st
 import matplotlib.pyplot as plt
+import yfinance as yf
 
 # Configuration de la page
 st.set_page_config(page_title="Derivatives Pricer", layout="wide")
@@ -431,8 +432,6 @@ with col_params:
         st.divider()
         st.header("3. Market Data")
         
-        # --- AJOUT: IMPORT YFINANCE (Tu peux le mettre tout en haut du fichier normalement) ---
-        import yfinance as yf
 
         # SÉLECTEUR DE MODÈLE
         model_choice = st.radio("Modèle / Model", ["Equity (Black-Scholes)", "Commodity (Black-76)"], horizontal=True)
