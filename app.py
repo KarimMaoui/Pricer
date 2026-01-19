@@ -431,14 +431,50 @@ with col_params:
         st.divider()
         st.header("3. Market Data")
         
+        # --- AJOUT: IMPORT YFINANCE (Tu peux le mettre tout en haut du fichier normalement) ---
+        import yfinance as yf
+
         # SÉLECTEUR DE MODÈLE
         model_choice = st.radio("Modèle / Model", ["Equity (Black-Scholes)", "Commodity (Black-76)"], horizontal=True)
+
+        # --- AJOUT: LIVE DATA SECTION ---
+        use_live_data = st.toggle("Use Real Datas from Yahoo", value=False)
         
-        # Label dynamique
+        current_price = 100.0 # Valeur par défaut
+        
+        if use_live_data:
+            col_ticker, col_btn = st.columns([2, 1])
+            with col_ticker:
+                # Exemples de Tickers : AAPL (Apple), CL=F (Crude Oil), GC=F (Gold), ZC=F (Corn)
+                default_ticker = "AAPL" if "Equity" in model_choice else "CL=F"
+                ticker_input = st.text_input("Ticker Symbol", value=default_ticker)
+            with col_btn:
+                st.write("") # Spacer pour aligner le bouton
+                st.write("") 
+                if st.button("Fetch Price"):
+                    try:
+                        ticker_data = yf.Ticker(ticker_input)
+                        # On prend le dernier prix de cloture ou le prix actuel
+                        history = ticker_data.history(period="1d")
+                        if not history.empty:
+                            fetched_price = history['Close'].iloc[-1]
+                            st.session_state['fetched_price'] = fetched_price
+                            st.success(f"{ticker_input}: {fetched_price:.2f} $")
+                        else:
+                            st.error("Ticker introuvable / Pas de données.")
+                    except Exception as e:
+                        st.error(f"Erreur connexion : {e}")
+
+            # Si on a récupéré un prix, on l'utilise
+            if 'fetched_price' in st.session_state:
+                current_price = st.session_state['fetched_price']
+
+        # --- INPUT SPOT PRICE (Editable même après fetch) ---
         label_S = "Future Price (F)" if "Black-76" in model_choice else "Spot Price (S)"
-        S = st.number_input(label_S, value=100.0)
+        S = st.number_input(label_S, value=float(current_price), format="%.2f")
         
-        K = st.number_input("Strike Central (K)", value=100.0)
+        # ... LA SUITE DU CODE RESTE PAREILLE (K, T, sigma...)
+        K = st.number_input("Strike Central (K)", value=float(S)) 
         T = st.slider("Maturity (Years)", 0.01, 5.0, 1.0, step=0.01)
         sigma = st.slider("Implied Volatility (ATM)", 0.01, 1.50, 0.30, step=0.01)
         
