@@ -418,7 +418,7 @@ with col_params:
         width_upper = 0.10
 
         if not show_upper and not show_lower:
-            st.caption("Aucun paramètre d'écart pour cette stratégie (Structure ATM).")
+            st.caption("No spread parameters for this strategy")
         else:
             col_width1, col_width2 = st.columns(2)
             with col_width1:
